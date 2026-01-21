@@ -9,7 +9,7 @@
 
 - ## 서버 세션을 단일 기준(SSOT)으로 설계해야 인증이 안정화된다는 것을 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -45,7 +45,7 @@
 
 - ## 코드뿐 아니라 템플릿 작성 규칙까지 표준화해야 재현 가능한 산출물이 된다는 걸 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -82,7 +82,7 @@
 
 - ## 생성형 결과는 프롬프트와 서버 방어 로직을 같이 설계해야 운영 가능하다는 걸 체감했다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -118,7 +118,7 @@
 
 - ## 요구 품질을 기준으로 모델/서빙을 선택하는 트레이드오프 판단을 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -154,7 +154,7 @@
 
 - ##UI는 라이브러리 혼용 자체보다 ‘스타일 정책(룰)’을 먼저 세워야 유지보수된다는 걸 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ##증상
 
@@ -188,7 +188,7 @@
 
 - ## 범용 도구 하나로 통합하기보다 포맷별로 책임을 분리하는 설계를 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -226,7 +226,7 @@
 
 - ## 기술 한계가 있을 때 ‘지원 범위 정의’로 품질을 지키는 방법을 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -260,7 +260,7 @@
 
 - ## 토큰 검증 → 서버 세션화까지가 소셜 로그인 완성이라는 걸 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -296,7 +296,7 @@
 
 - ## 시크릿은 코드에서 분리하고 관리 규칙을 갖추는 습관이 생겼다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
@@ -330,7 +330,7 @@
 
 - ## HTTP 헤더/바이너리 처리까지 이해해야 안정적인 기능이 된다는 걸 배웠다.
 
-<details> <summary><b>▶ 더보기</b></summary>
+<details> <summary><b> 더보기</b></summary>
 
 - ## 증상
 
