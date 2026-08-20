@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { message, Pagination } from "antd";
 import { AuthContext } from "../context/AuthContext";
+import { API_BASE } from "../config/api";
 
 const LOGIN_REQUIRED_KEY = "login_required_message";
 // 디자인은 차후 수정 예정
@@ -63,7 +64,7 @@ function List() {
     async function fetchList() {
       setLoading(true);
       try {
-        let url = `http://localhost:8081/api/usr/work/list?page=${page}&size=${pageSize}`;
+        let url = `${API_BASE}/api/usr/work/list?page=${page}&size=${pageSize}`;
         if (boardIdParam != null) {
           url += `&boardId=${boardIdParam}`;
         }

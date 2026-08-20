@@ -13,6 +13,7 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import { AuthContext } from "../context/AuthContext";
 import { TEMPLATE_MAIN_PLACEHOLDER } from "../config/templateSummaryConfig";
+import { API_BASE } from "../config/api";
 
 const LOGIN_REQUIRED_KEY = "login_required_message";
 // 로그인 후 이용가능 메세지 두번 출력하지 않기 위해 만든 변수
@@ -134,7 +135,7 @@ function Write() {
     if ([1, 2, 3].includes(boardId)) {
       try {
         const res = await fetch(
-          "http://localhost:8081/api/usr/work/simplePost",
+          `${API_BASE}/api/usr/work/simplePost`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -175,7 +176,7 @@ function Write() {
 
     try {
       const response = await fetch(
-        "http://localhost:8081/api/usr/work/workLog",
+        `${API_BASE}/api/usr/work/workLog`,
         {
           method: "post",
           body: formData,
