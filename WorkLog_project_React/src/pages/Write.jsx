@@ -165,7 +165,9 @@ function Write() {
     formData.append("boardId", values.boardId);
     formData.append("title", values.title);
     formData.append("mainContent", mainContentMarkdown);
-    formData.append("sideContent", values.sideContent);
+    // 값이 없으면 빈 문자열로 보낸다. undefined 를 그대로 넣으면 FormData 가
+    // 문자열 "undefined" 로 바꿔서, 보조내용을 안 쓴 글의 DB 에 그 글자가 들어갔다.
+    formData.append("sideContent", values.sideContent ?? "");
     formData.append("templateId", values.templateId || "TPL1");
 
     if (values.files && values.files.length > 0) {
