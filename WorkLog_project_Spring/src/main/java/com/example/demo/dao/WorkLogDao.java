@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -27,8 +28,12 @@ public interface WorkLogDao {
 					, summaryContent = #{workLogData.summaryContent}
 					, memberId = #{memberId} 
 					, templateId = #{workLogData.templateId}              
-					, boardId = #{boardId}                   
+					, boardId = #{boardId}
 			""")
+	// 새로 만들어진 id 는 insert 를 실행한 그 자리에서 받아온다.
+	// 예전에는 별도 쿼리(`select last_insert_id()`)로 읽었는데, 이 값은 커넥션 단위라
+	// 트랜잭션이 없으면 다른 커넥션에서 실행되어 남의 글 id 나 0 을 받을 수 있었다.
+	@Options(useGeneratedKeys = true, keyProperty = "workLogData.id")
 	public void writeWorkLog(@Param("workLogData") WorkLog workLogData, @Param("memberId") int memberId, @Param("boardId") int boardId);
 
 	@Select("""
@@ -70,9 +75,6 @@ public interface WorkLogDao {
 	public int doModify(@Param("id") int id, @Param("memberId") int memberId,
 			@Param("modifyData") WorkLog modifyData);
 
-	@Select("SELECT LAST_INSERT_ID()")
-	public int getLastInsertId();
-	
 	@Select("""
 			select count(*)
 				from workLog
@@ -170,6 +172,7 @@ public interface WorkLogDao {
 					, templateId = #{log.templateId}
 					, boardId = #{boardId}
 			""")
+	@Options(useGeneratedKeys = true, keyProperty = "log.id")
 	public void writeWorkLogToBoard(@Param("log") WorkLog weeklyLog, @Param("memberId") int memberId, @Param("boardId") int boardId);
 	
 	@Delete("""

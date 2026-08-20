@@ -204,21 +204,10 @@ public class WorkLogController {
 			workLogData.setSummaryContent("{}");
 		}
 
-		this.workLogService.writeWorkLog(workLogData, memberIdObj, boardId);
+		// 글과 첨부를 한 트랜잭션으로 넣는다. 첨부가 하나라도 실패하면 글도 남지 않고
+		// 예외가 그대로 올라가므로, 사용자가 "완료" 를 보고 첨부만 사라지는 일은 없다.
+		this.workLogService.writeWorkLogWithFiles(workLogData, memberIdObj, boardId, files);
 
-		int workLogId = this.workLogService.getLastInsertId();
-//		 첨부 파일 처리, 맨 위는 로그인 안된 상태에서 넘길때 방지
-		if (workLogId == 0) {
-			System.out.println("저장 실패 파일 처리 건너뛰기를 실행");
-		} else { // 밑에는 가져온 파일들의 값이 있을 때 순회를 돌려서 있는 파일만 골라서 넘기겠다라는 의미임
-			if (files != null && !files.isEmpty()) {
-				for (MultipartFile file : files) {
-					if (!file.isEmpty()) {
-						this.fileAttachService.fileInsert(workLogId, file);
-					}
-				}
-			}
-		}
 		return "데이터 입력 완료";
 	}
 
@@ -246,8 +235,7 @@ public class WorkLogController {
 		log.setTemplateId(null);
 		log.setSummaryContent(null);
 
-		this.workLogService.writeWorkLog(log, memberId, boardId);
-		int newId = this.workLogService.getLastInsertId();
+		int newId = this.workLogService.writeWorkLog(log, memberId, boardId);
 
 		Map<String, Object> result = new HashMap<>();
 		result.put("id", newId);
@@ -892,9 +880,7 @@ public class WorkLogController {
 		weeklyLog.setTemplateId("TPLW1"); // 나중에 주간 DOCX 템플릿용 ID (그냥 약속)
 		weeklyLog.setSummaryContent("{}"); // 주간은 JSON 요약 안 쓸 거라 일단 빈 값
 
-		this.workLogService.writeWorkLogToBoard(weeklyLog, memberId, BOARD_ID_WEEKLY);
-
-		int newId = this.workLogService.getLastInsertId();
+		int newId = this.workLogService.writeWorkLogToBoard(weeklyLog, memberId, BOARD_ID_WEEKLY);
 
 		Map<String, Object> result = new HashMap<>();
 		result.put("id", newId);
@@ -1157,9 +1143,7 @@ public class WorkLogController {
 		monthlyLog.setSummaryContent("{}"); // 월간은 JSON 요약 안 쓰면 빈 객체
 
 		// 📌 여기서 월간 게시판에 저장 (BOARD_ID_MONTHLY = 3 이라고 위에서 정의해둔 상수)
-		this.workLogService.writeWorkLogToBoard(monthlyLog, memberId, BOARD_ID_MONTHLY);
-
-		int newId = this.workLogService.getLastInsertId();
+		int newId = this.workLogService.writeWorkLogToBoard(monthlyLog, memberId, BOARD_ID_MONTHLY);
 
 		Map<String, Object> result = new HashMap<>();
 		result.put("id", newId);
