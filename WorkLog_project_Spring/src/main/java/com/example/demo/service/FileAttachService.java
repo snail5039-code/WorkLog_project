@@ -2,6 +2,9 @@ package com.example.demo.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -16,6 +19,9 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.demo.dao.FileAttachDao;
 import com.example.demo.dto.FileAttach;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class FileAttachService {
 
@@ -93,5 +99,47 @@ public class FileAttachService {
 
 	public String getFirstStoredFilenameByWorkLogId(int workLogId) {
 		return this.fileAttachDao.findFirstByWorkLogId(workLogId);
+	}
+
+	/**
+	 * 글에 붙은 첨부를 DB 와 디스크에서 모두 지운다.
+	 *
+	 * 예전에는 글만 지워서 첨부 메타와 실제 파일이 그대로 남았다.
+	 * 디스크 삭제는 트랜잭션이 되돌려주지 않으므로 DB 정리를 먼저 한다.
+	 */
+	public void deleteFilesByWorkLogId(int workLogId) {
+		List<FileAttach> files = this.fileAttachDao.getFilesByWorkLogId(workLogId);
+
+		this.fileAttachDao.deleteByWorkLogId(workLogId);
+
+		if (files == null) {
+			return;
+		}
+
+		for (FileAttach file : files) {
+			deleteFromDisk(file.getFilePath());
+		}
+	}
+
+	private void deleteFromDisk(String storedFilename) {
+		if (storedFilename == null || storedFilename.isBlank()) {
+			return;
+		}
+
+		Path baseDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+		Path target = baseDir.resolve(storedFilename).normalize();
+
+		// 업로드 폴더 밖은 건드리지 않는다.
+		if (!target.startsWith(baseDir)) {
+			log.error("업로드 폴더를 벗어난 삭제 요청: {}", storedFilename);
+			return;
+		}
+
+		try {
+			Files.deleteIfExists(target);
+		} catch (IOException e) {
+			// 파일이 안 지워져도 글 삭제는 계속한다. DB 는 이미 정리됐다.
+			log.error("첨부파일 삭제 실패: {}", target, e);
+		}
 	}
 }

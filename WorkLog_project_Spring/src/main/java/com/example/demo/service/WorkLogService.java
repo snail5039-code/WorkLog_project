@@ -18,10 +18,13 @@ public class WorkLogService {
 	
 	private WorkLogDao workLogDao;
 	private FileAttachService fileAttachService;
+	private WorkReplyService workReplyService;
 	// 의존성 주입
-	public WorkLogService(WorkLogDao workLogDao, FileAttachService fileAttachService) {
+	public WorkLogService(WorkLogDao workLogDao, FileAttachService fileAttachService,
+			WorkReplyService workReplyService) {
 		this.workLogDao = workLogDao;
 		this.fileAttachService = fileAttachService;
+		this.workReplyService = workReplyService;
 	}
 	
 	/** 글을 넣고 새로 만들어진 id 를 돌려준다. */
@@ -129,7 +132,16 @@ public class WorkLogService {
 		return weeklyLog.getId();
 	}
 
+	/**
+	 * 글과 딸린 것들을 함께 지운다.
+	 *
+	 * 스키마에 FK 도 CASCADE 도 없어서 예전에는 댓글 · 첨부 메타 · 디스크 파일이
+	 * 전부 고아로 남았다. 자식부터 지우고 마지막에 글을 지운다.
+	 */
+	@Transactional
 	public void deleteWorkLog(int id) {
+		this.workReplyService.deleteByWorkLogId(id);
+		this.fileAttachService.deleteFilesByWorkLogId(id);
 		this.workLogDao.deleteWorkLog(id);
 	}
 

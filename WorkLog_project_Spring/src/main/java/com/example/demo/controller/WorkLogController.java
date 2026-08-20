@@ -621,9 +621,11 @@ public class WorkLogController {
 		headers.setContentType(
 				MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
 
+		// setContentDispositionFormData 는 응답에 `form-data` 타입을 실어보낸다.
+		// 다운로드 응답은 `attachment` 여야 하고, 한글 이름은 filename* 로 보낸다.
 		String filename = "인수인계서.docx";
-		headers.setContentDispositionFormData("attachment",
-				new String(filename.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1));
+		headers.setContentDisposition(
+				ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build());
 
 		return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
 
@@ -664,8 +666,8 @@ public class WorkLogController {
 				MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
 
 		String filename = ("인수인계서_" + log.getId() + ".docx");
-		headers.setContentDispositionFormData("attachment",
-				new String(filename.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1));
+		headers.setContentDisposition(
+				ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build());
 
 		return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
 	}
