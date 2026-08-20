@@ -219,6 +219,11 @@ public class MemberController {
 			return ResponseEntity.badRequest().body(Map.of("error", "idToken is required"));
 		}
 
+		// provider 가 없으면 loginId 규칙을 만들 수 없다. 예전에는 여기서 NPE 로 500 이 났다.
+		if (provider == null || provider.isBlank()) {
+			return ResponseEntity.badRequest().body(Map.of("error", "provider is required"));
+		}
+
 		try {
 			// 1) Firebase 토큰 검증
 			FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
@@ -233,10 +238,11 @@ public class MemberController {
 			String loginId = provider.toUpperCase() + "_" + uid;
 
 			Member member = this.memberService.findByLoginIdAndEmail(loginId, email);
-			
-			if(member == null && email != null) {
-				member = this.memberService.findEmail(email);
-			}
+
+			// 이메일만 같으면 기존 계정을 내주던 분기를 없앴다.
+			// 공급자에 따라 검증되지 않은 이메일도 토큰에 실려 오기 때문에,
+			// 남의 이메일을 자기 소셜 계정에 적어두는 것만으로 그 계정을 가져갈 수 있었다.
+			// 소셜 계정은 provider + uid 로만 식별한다.
 			
 			if (member == null) {
 				Member newMember = new Member();
