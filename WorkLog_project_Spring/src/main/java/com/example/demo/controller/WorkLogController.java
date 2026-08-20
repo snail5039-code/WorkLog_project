@@ -730,7 +730,8 @@ public class WorkLogController {
 		if (aiSummary == null || aiSummary.isBlank()) {
 			return worklogListText;
 		}
-		aiSummary = aiSummary.replaceAll("\\n([2-9]\\. )", "\n\n$1");
+		// 번호 블록 앞의 빈 줄은 generateHandoverSummary 가 이미 넣어준다.
+		// 여기서 한 번 더 넣으면 줄이 세 개가 되어 다시 압축되는 왕복이 생긴다.
 		// 👉 최종적으로 인수인계서 ${handover_content}에 들어갈 내용
 		return aiSummary;
 	}
