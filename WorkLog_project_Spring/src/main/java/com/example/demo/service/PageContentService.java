@@ -43,6 +43,12 @@ public class PageContentService {
 	}
 
 	public List<PageContent> searchByKeyword(String question) {
+		// 키워드가 없으면 전체를 준다. 예전에는 null 을 그대로 넘겨서
+		// LIKE CONCAT('%', NULL, '%') 가 되어 항상 빈 목록이 나왔다.
+		if (question == null || question.isBlank()) {
+			return this.pageContentDao.findAll();
+		}
+
 		return this.pageContentDao.searchByKeyword(question);
 	}
 

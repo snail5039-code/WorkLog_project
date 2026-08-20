@@ -24,15 +24,18 @@ public class DocxTemplateService {
 			if (in == null) {
 				throw new IllegalArgumentException("템플릿 파일을 찾을 수 없습니다." + path);
 			}
-			XWPFDocument doc = new XWPFDocument(in);
-			// 문단, 테이블 안에서 플레이스홀더를 치환하는 것!
-			replaceInParagraphs(doc, values);
-			replaceInTables(doc, values);
+			// XWPFDocument 도 try-with-resources 로 묶는다. 안에 OPCPackage 를 들고 있어
+			// 닫지 않으면 다운로드 한 번마다 압축 해제된 XML 트리가 그대로 남는다.
+			try (XWPFDocument doc = new XWPFDocument(in)) {
+				// 문단, 테이블 안에서 플레이스홀더를 치환하는 것!
+				replaceInParagraphs(doc, values);
+				replaceInTables(doc, values);
 
-			// 메모리 저장 후 바이트 반환, 즉 word 파일 데이터를 메모리 저장
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			doc.write(out);
-			return out.toByteArray();
+				// 메모리 저장 후 바이트 반환, 즉 word 파일 데이터를 메모리 저장
+				ByteArrayOutputStream out = new ByteArrayOutputStream();
+				doc.write(out);
+				return out.toByteArray();
+			}
 		}
 	}
 	// 줄 바꿈 메서드 안그러면 인수인계서 이상하게 나옴
