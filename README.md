@@ -429,7 +429,9 @@ run 하나만 보고 치환할 수 없다.
 - **작업 기록(노션)**: [방문하기](https://www.notion.so/2ecc2c49a250802ca80bd418e5d148fe?source=copy_link)
 - **점검 · 수정 내역**: [`docs/FIX_PLAN.md`](docs/FIX_PLAN.md)
 
-## 미리보기
+## 발표 자료 미리보기
 
-<img width="1919" height="1079" alt="업무일지 목록 화면" src="https://github.com/user-attachments/assets/2e4caa3d-8cbe-4322-8460-88471340a8a5" />
-<img width="1920" height="1080" alt="업무일지 작성 화면" src="https://github.com/user-attachments/assets/c9863cd7-b685-4370-981f-e7d9030c4a15" />
+아래 두 장은 발표 자료의 표지와 개요 슬라이드입니다. **실행 화면 스크린샷은 아직 없습니다.**
+
+<img width="1919" height="1079" alt="발표 자료 표지 — WorkLog_Project Presentation, 2025.12.18" src="https://github.com/user-attachments/assets/2e4caa3d-8cbe-4322-8460-88471340a8a5" />
+<img width="1920" height="1080" alt="발표 자료 개요 슬라이드 — 프로젝트명·기간(25.11.22~25.12.17)·목표" src="https://github.com/user-attachments/assets/c9863cd7-b685-4370-981f-e7d9030c4a15" />
