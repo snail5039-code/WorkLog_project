@@ -65,9 +65,10 @@ public interface WorkLogDao {
 					, title = #{modifyData.title}
 					, mainContent = #{modifyData.mainContent}
 					, sideContent = #{modifyData.sideContent}
-				where id = #{id}
+					where id = #{id} and memberId = #{memberId}
 			""")
-	public int doModify(@Param("id") int id, @Param("modifyData") WorkLog modifyData);
+	public int doModify(@Param("id") int id, @Param("memberId") int memberId,
+			@Param("modifyData") WorkLog modifyData);
 
 	@Select("SELECT LAST_INSERT_ID()")
 	public int getLastInsertId();

@@ -159,6 +159,14 @@ public class WorkLogController {
 	@PostMapping("/usr/work/workLog") // MultipartFile 이거는 스프링부트 내장이라서 바로 사용 가능함, 리액트에서 multiple를 받아온거!
 	public String writeWorkLog(@RequestParam int boardId, String title, String mainContent, String sideContent,
 			String templateId, List<MultipartFile> files, HttpSession session) {
+		// 로그인 확인은 AI 호출보다 먼저 한다. 예전에는 이 검사가 AI 호출 뒤에 있어서,
+		// 비로그인 요청도 매번 LLM 추론을 돌린 뒤에야 언박싱 NPE 로 500 이 났다.
+		Integer memberIdObj = (Integer) session.getAttribute("logindeMemberId");
+
+		if (memberIdObj == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+
 		// 여기는 ai한테 입력된 값 넘기는 곳!
 		String finalAiReport = null;
 		String effectiveTemplateId = null;
@@ -181,8 +189,6 @@ public class WorkLogController {
 				effectiveTemplateId = "TPL1";
 			}
 		}
-		int memberIdObj = (int) session.getAttribute("logindeMemberId");
-
 		// MultipartFile 이거는 따로 테이블 만들어서 보관해야됌!
 		WorkLog workLogData = new WorkLog();
 		workLogData.setTitle(title);
@@ -251,16 +257,33 @@ public class WorkLogController {
 
 	// 파일 다운로드 하게하기
 	@GetMapping("/usr/work/download/{storedFilename}")
-	public ResponseEntity<Resource> downloadFile(@PathVariable String storedFilename) {
+	public ResponseEntity<Resource> downloadFile(@PathVariable String storedFilename, HttpSession session) {
+		Integer memberId = (Integer) session.getAttribute("logindeMemberId");
+
+		if (memberId == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+
 		// db 저장된 파일명을 이용 원본 파일명 조회 하는 것!
 		String originalFilename = fileAttachService.getOriginalFilename(storedFilename);
 
+		// DB 에 없는 이름이면 여기서 끝낸다. 예전에는 로그만 찍고 그대로 내려가서,
+		// 등록된 적 없는 파일도 그대로 서빙됐다.
 		if (originalFilename == null) {
-			System.out.println("파일을 찾을 수 없음!");
-			log.error("파일을 찾을 수가 없음..");
+			log.error("등록되지 않은 파일 요청: {}", storedFilename);
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
 		}
+
 		// 파일 경로 찾는 것임!
-		Path filePath = Paths.get(uploadDir).resolve(storedFilename).normalize();
+		Path baseDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+		Path filePath = baseDir.resolve(storedFilename).normalize();
+
+		// normalize() 는 `..` 을 정리해줄 뿐 막아주지 않는다. 업로드 폴더 밖으로
+		// 나가는 경로인지 여기서 직접 확인한다.
+		if (!filePath.startsWith(baseDir)) {
+			log.error("업로드 폴더를 벗어난 경로 요청: {}", storedFilename);
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 파일 경로입니다.");
+		}
 		log.info("시도된 파일 다운로드 경로: {}", filePath.toAbsolutePath()); // toAbsolutePath()를 사용해 절대 경로를 확인
 		Resource resource;
 
@@ -277,20 +300,11 @@ public class WorkLogController {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
 		}
 
-		// 다운로드 해야할 파일, 파일 이름 알려주는 역할임!
-		String contentDisposition = "";
-
-		// 브라우저한테 인코딩해서 파일 보낼거임!
-		try {
-			// ISO-8859-1 이걸로 변환해서 안보내면 깨짐
-			String encodedFilename = new String(originalFilename.getBytes(StandardCharsets.UTF_8),
-					StandardCharsets.ISO_8859_1);
-			// attachment;filename=\ 요거는 텍스트 명령어라서 규칙임, 첨부파일이니깐 다운로드해라, 이름은 저거임 이라는 것!
-			contentDisposition = "attachment;filename=\"" + encodedFilename + "\"";
-		} catch (Exception e) {
-			log.warn("응 인코딩 실패!");
-			contentDisposition = "attachment;filename=\"" + originalFilename + "\"";
-		}
+		// 한글 파일명은 filename* 파라미터로 보내야 한다 (RFC 6266).
+		// UTF-8 바이트를 ISO-8859-1 로 재해석하는 예전 방식은 브라우저가 다시
+		// UTF-8 로 추측해줄 때만 우연히 맞았고, Firefox·Safari 에서는 깨졌다.
+		String contentDisposition = ContentDisposition.attachment()
+				.filename(originalFilename, StandardCharsets.UTF_8).build().toString();
 		// contentType(MediaType.APPLICATION_OCTET_STREAM) 이거는 바이너리 파일임. 약속된거라서 그냥 쓰면 됌
 		// HttpHeaders.CONTENT_DISPOSITION, contentDisposition 이것도 약속임 파일 이름 알려주는 거 위에
 		// 다운로드 하라는 것도 같이 그래서 실제 데이터를 body(resource) 요기에 담는거!
@@ -301,7 +315,11 @@ public class WorkLogController {
 
 	// ⭐ 템플릿 게시판(예: boardId = 7)의 글에서 첨부파일 한 개 다운로드
 	@GetMapping("/usr/work/{id}/template-download")
-	public ResponseEntity<Resource> downloadTemplateFile(@PathVariable("id") int workLogId) {
+	public ResponseEntity<Resource> downloadTemplateFile(@PathVariable("id") int workLogId, HttpSession session) {
+
+		if (session.getAttribute("logindeMemberId") == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
 
 		// 1) 글 존재하는지 확인 (없으면 404)
 		WorkLog log = workLogService.showDetail(workLogId);
@@ -323,7 +341,7 @@ public class WorkLogController {
 		}
 
 		// 4) 이미 있는 다운로드 로직 재사용
-		return downloadFile(storedFilename);
+		return downloadFile(storedFilename, session);
 	}
 
 	@GetMapping("/usr/workLog/myPageSummary")
@@ -362,19 +380,15 @@ public class WorkLogController {
 
 	@PostMapping("/usr/workLog/updateMyInfo")
 	public void updateMyInfo(@RequestBody Member modifyData, HttpSession session) {
-		int memberId = -1;
+		// Integer 로 받는다. int 로 바로 받으면 비로그인일 때 언박싱 NPE 가 나서
+		// 401 대신 500 이 나갔고, 아래 검사는 아예 도달하지 못하는 죽은 코드였다.
+		Integer memberId = (Integer) session.getAttribute("logindeMemberId");
 
-		memberId = (int) session.getAttribute("logindeMemberId");
-
-		if (memberId == -1) {
+		if (memberId == null) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 		}
 		modifyData.setId(memberId);
-		// 비번 변경안하려면 가져와서 그걸로 넣는거임
-		if (modifyData.getLoginPw() == null || modifyData.getLoginPw().isBlank()) {
-			Member dbmember = this.memberService.getMemberById(memberId);
-			modifyData.setLoginPw(dbmember.getLoginPw());
-		}
+		// 비번을 비워서 보내면 기존 것을 유지한다. 암호화는 서비스가 맡는다.
 		int affectedRows = this.memberService.updateMyInfo(modifyData);
 
 		if (affectedRows == 0) {
@@ -508,8 +522,27 @@ public class WorkLogController {
 	}
 
 	@PostMapping("/usr/work/modify/{id}")
-	public int modify(@PathVariable("id") int id, @RequestBody WorkLog modifyData) {
-		return this.workLogService.doModify(id, modifyData);
+	public ResponseEntity<?> modify(@PathVariable("id") int id, @RequestBody WorkLog modifyData,
+			HttpSession session) {
+		Integer memberId = (Integer) session.getAttribute("logindeMemberId");
+
+		if (memberId == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+
+		WorkLog workLog = this.workLogService.showDetail(id);
+
+		if (workLog == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("게시글을 찾을 수 없습니다.");
+		}
+
+		if (!memberId.equals(workLog.getMemberId())) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("본인이 작성한 글만 수정할 수 있습니다.");
+		}
+
+		// DAO 의 where 절에도 memberId 를 걸어둔다. 위 검사와 중복이지만,
+		// 앞으로 호출 경로가 늘어도 남의 글이 바뀌는 일은 없게 한다.
+		return ResponseEntity.ok(this.workLogService.doModify(id, memberId, modifyData));
 	}
 
 	@DeleteMapping("/usr/work/{id}")
@@ -574,7 +607,7 @@ public class WorkLogController {
 		Map<String, String> values = handoverTemplateService.buildBaseValues(me, toName, toJob, title, content, date,
 				fromJob);
 
-		this.handoverLogService.saveHandoverLog(memberId, me.getName(), title, toName, toJob, fromJob, fromDate, toDate,
+		this.handoverLogService.saveHandoverLog(memberId, me.getName(), toName, toJob, fromJob, title, fromDate, toDate,
 				content);
 
 		byte[] fileBytes = docxTemplateService.fileTemplate("업무 인수인계서.docx", values);
@@ -968,7 +1001,9 @@ public class WorkLogController {
 		Map<String, String> values = new HashMap<>();
 		values.put("${TPLM1_WRITER}", writer);
 		values.put("${TPLM1_PERIOD}", period != null ? period : "");
-		values.put("${TPLM1_MAIN}", full);
+		// 이슈 블록을 걷어낸 mainText 를 넣는다. full 을 넣으면 본문 칸과 이슈 칸에
+		// 같은 내용이 두 번 인쇄된다 (주간 쪽은 처음부터 mainText 를 쓰고 있었다).
+		values.put("${TPLM1_MAIN}", mainText);
 		values.put("${TPLM1_ISSUE}", issueText);
 
 		// 5) DOCX 생성

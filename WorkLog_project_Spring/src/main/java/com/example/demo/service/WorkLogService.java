@@ -45,8 +45,8 @@ public class WorkLogService {
 	    return workLog;
 	}
 
-	public int doModify(int id, WorkLog modifyData) {
-		return this.workLogDao.doModify(id, modifyData);
+	public int doModify(int id, int memberId, WorkLog modifyData) {
+		return this.workLogDao.doModify(id, memberId, modifyData);
 	}
 
 	public int getLastInsertId() {
