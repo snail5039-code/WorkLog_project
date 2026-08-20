@@ -119,6 +119,11 @@ public class WorkLogService {
 		return this.workLogDao.getLogsByDateRange(memberId, s, e);
 	}
 
+	/** 인수인계서 재료. 기간을 비우면 전체 기간이다. */
+	public List<WorkLog> getDailyLogsForHandover(int memberId, LocalDate s, LocalDate e) {
+		return this.workLogDao.getDailyLogsForHandover(memberId, s, e);
+	}
+
 	public int writeWorkLogToBoard(WorkLog weeklyLog, int memberId, int boardId) {
 		this.workLogDao.writeWorkLogToBoard(weeklyLog, memberId, boardId);
 		return weeklyLog.getId();

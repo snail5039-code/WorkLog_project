@@ -30,6 +30,11 @@ spring:
 #        model: llama3:8b-instruct-q4_K_M
 #        response-format:
 #          type: json_object
+mybatis:
+  configuration:
+    # pageContent.crawled_at 처럼 밑줄이 든 컬럼을 DTO 의 crawledAt 에 붙여준다.
+    # 이 설정이 없어서 크롤링 시각이 응답에서 늘 null 이었다.
+    map-underscore-to-camel-case: true
 file:
   upload-dir: ${user.dir}/uploads
 #이거는 파일 업로드 할때 경로 알아서 찾으라고 만든거임!

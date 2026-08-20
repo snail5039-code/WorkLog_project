@@ -159,6 +159,21 @@ public interface WorkLogDao {
 				order by regDate asc
 			""")
 	public List<WorkLog> getLogsByDateRange(int memberId, LocalDate s, LocalDate e);
+
+	// 인수인계서용. 기간을 비워도 되도록 양쪽 경계를 선택 조건으로 뒀다.
+	// 예전에는 "최근 200건" 을 가져와 자바에서 걸렀기 때문에, 글이 200건을 넘으면
+	// 오래된 기간은 존재 자체를 모른 채 빈 인수인계서가 나왔다.
+	@Select("""
+			select *
+				from workLog
+				where memberId = #{memberId}
+					and boardId = 4
+					and (#{s, jdbcType=DATE} is null or date(regDate) >= #{s, jdbcType=DATE})
+					and (#{e, jdbcType=DATE} is null or date(regDate) <= #{e, jdbcType=DATE})
+				order by regDate asc
+			""")
+	public List<WorkLog> getDailyLogsForHandover(@Param("memberId") int memberId, @Param("s") LocalDate s,
+			@Param("e") LocalDate e);
 	
 	@Insert("""
 			insert into workLog

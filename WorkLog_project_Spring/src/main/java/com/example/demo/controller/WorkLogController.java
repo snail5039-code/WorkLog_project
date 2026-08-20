@@ -42,6 +42,7 @@ import com.example.demo.service.FileAttachService;
 import com.example.demo.service.HandoverLogService;
 import com.example.demo.service.HandoverTemplateService;
 import com.example.demo.service.MemberService;
+import com.example.demo.service.TemplateMetaService;
 import com.example.demo.service.TemplateValueService;
 import com.example.demo.service.WorkChatAIService;
 import com.example.demo.service.WorkLogService;
@@ -70,6 +71,7 @@ public class WorkLogController {
 	private final HandoverTemplateService handoverTemplateService;
 	private final HandoverLogService handoverLogService;
 	private final WorkReplyService workReplyService;
+	private final TemplateMetaService templateMetaService;
 
 	private static final int BOARD_ID_WEEKLY = 5;
 	private static final int BOARD_ID_MONTHLY = 6;
@@ -79,7 +81,7 @@ public class WorkLogController {
 			WorkChatAIService workChatAIService, TemplateValueService templateValueService,
 			DocxTemplateService docxTemplateService, MemberService memberService,
 			HandoverTemplateService handoverTemplateService, HandoverLogService handoverLogService,
-			WorkReplyService workReplyService) {
+			WorkReplyService workReplyService, TemplateMetaService templateMetaService) {
 		this.workLogService = workLogService;
 		this.fileAttachService = fileAttachService;
 		this.workChatAIService = workChatAIService;
@@ -89,6 +91,7 @@ public class WorkLogController {
 		this.handoverTemplateService = handoverTemplateService;
 		this.handoverLogService = handoverLogService;
 		this.workReplyService = workReplyService;
+		this.templateMetaService = templateMetaService;
 	}
 
 	// 💡 실제로 쓸 엔드포인트
@@ -165,6 +168,12 @@ public class WorkLogController {
 
 		if (memberIdObj == null) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+
+		// 등록되지 않은 템플릿은 여기서 막는다. 아래 AI 호출은 예외를 전부 삼키고
+		// TPL1 로 되돌리므로, 그 안쪽에서 거부해도 사용자에게는 전달되지 않는다.
+		if (!this.templateMetaService.isSupported(templateId)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지원하지 않는 템플릿입니다: " + templateId);
 		}
 
 		// 여기는 ai한테 입력된 값 넘기는 곳!
@@ -340,6 +349,13 @@ public class WorkLogController {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 		}
 
+		// 다른 목록(showList·getMyHandoverList)에는 있는 하한 검증이 여기만 빠져 있었다.
+		// ?page=0 이면 offset 이 -10 이 되어 SQL 문법 오류로 500 이 났다.
+		if (page < 1)
+			page = 1;
+		if (size <= 0 || size > 100)
+			size = 10;
+
 		List<WorkLog> myWorkLogs = workLogService.getMyWorkLogsPaged(memberId, page, size);
 
 		int totalCount = workLogService.getMyWorkLogsCount(memberId); // 내가 쓴 총 게시글 갯수
@@ -385,8 +401,9 @@ public class WorkLogController {
 	}
 
 	@GetMapping("/usr/work/list")
+	// size 기본값은 10 이다. 예전 기본값은 1 이라 size 를 빼고 부르면 한 건만 왔다.
 	public Map<String, Object> showList(@RequestParam(defaultValue = "1") int page,
-			@RequestParam(defaultValue = "1") int size, @RequestParam(required = false) Integer boardId) {
+			@RequestParam(defaultValue = "10") int size, @RequestParam(required = false) Integer boardId) {
 		if (page < 1)
 			page = 1;
 		if (size <= 0 || size > 100)
@@ -654,46 +671,26 @@ public class WorkLogController {
 	}
 
 	private String buildHandoverContent(int memberId, LocalDate fromDate, LocalDate toDate) {
-		int page = 1;
-		int size = 200;
+		// 기간·게시판 조건을 SQL 에서 건다. 예전에는 최근 200건만 가져와 자바에서
+		// 걸렀기 때문에, 글이 200건을 넘으면 오래된 기간이 조용히 빠졌다.
+		List<WorkLog> filtered = workLogService.getDailyLogsForHandover(memberId, fromDate, toDate);
 
-		List<WorkLog> logs = workLogService.getMyWorkLogsPaged(memberId, page, size);
-		if (logs == null || logs.isEmpty()) {
+		if (filtered == null || filtered.isEmpty()) {
 			return "등록된 업무일지가 없습니다.";
 		}
-
-		List<WorkLog> filtered = logs.stream().filter(log -> {
-			// ✅ 1) 일일 업무일지(boardId = 4)만 사용
-			if (log.getBoardId() != 4) {
-				return false;
-			}
-
-			String regDateStr = log.getRegDate();
-			if (regDateStr == null || regDateStr.isBlank()) {
-				return false;
-			}
-			try {
-				if (regDateStr.length() >= 10) {
-					regDateStr = regDateStr.substring(0, 10);
-				}
-				LocalDate d = LocalDate.parse(regDateStr);
-
-				if (fromDate != null && d.isBefore(fromDate))
-					return false;
-				if (toDate != null && d.isAfter(toDate))
-					return false;
-
-				return true;
-			} catch (Exception e) {
-				return false;
-			}
-		}).toList();
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("아래는 선택한 기간 동안 작성한 업무일지 목록입니다.\n").append("각 항목은 제목, 작성일, 주요 내용 순으로 정리되어 있습니다.\n\n");
 
 		int index = 1;
 		int maxLogsForAi = Math.min(filtered.size(), 20); // AI에 너무 많이 안 넘기게 최대 20개
+
+		// 잘라낸 사실을 로그로 남긴다. 조용히 자르면 "기간은 넓게 잡았는데 왜 내용이 적나" 를
+		// 추적할 방법이 없다.
+		if (filtered.size() > maxLogsForAi) {
+			log.warn("인수인계 재료를 {}건 중 앞 {}건만 사용합니다. (memberId={}, {} ~ {})", filtered.size(), maxLogsForAi,
+					memberId, fromDate, toDate);
+		}
 
 		for (int i = 0; i < maxLogsForAi; i++) {
 			WorkLog log = filtered.get(i);
