@@ -19,9 +19,17 @@ spring:
       max-request-size: 50MB
   config:
     import:
+      # 백엔드 실행 폴더의 .env를 properties 형식으로 읽는다.
+      - optional:file:.env[.properties]
       - optional:classpath:ai.yml
       # 메일 비밀 설정이 없는 CI/테스트 환경에서도 앱 컨텍스트가 시작되어야 한다.
       - optional:classpath:send.yml
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:25}
 
 
 #  ai:
