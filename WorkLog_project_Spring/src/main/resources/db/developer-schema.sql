@@ -17,6 +17,24 @@ CREATE TABLE IF NOT EXISTS member (
   UNIQUE KEY uk_member_email (email)
 );
 
+CREATE TABLE IF NOT EXISTS project (
+  id INT NOT NULL AUTO_INCREMENT,
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updateDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  ownerMemberId INT NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  description TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  color VARCHAR(20),
+  startDate DATE,
+  dueDate DATE,
+  archivedAt DATETIME,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_project_owner_name (ownerMemberId, name),
+  KEY idx_project_owner_status_update (ownerMemberId, status, updateDate),
+  CONSTRAINT fk_project_owner FOREIGN KEY (ownerMemberId) REFERENCES member (id)
+);
+
 CREATE TABLE IF NOT EXISTS workLog (
   id INT NOT NULL AUTO_INCREMENT,
   regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -28,9 +46,32 @@ CREATE TABLE IF NOT EXISTS workLog (
   templateId VARCHAR(100),
   memberId INT NOT NULL,
   boardId INT NOT NULL DEFAULT 4,
+  projectId INT,
+  workStatus VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
+  priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
+  startDate DATE,
+  dueDate DATE,
+  blocker TEXT,
+  nextAction TEXT,
+  previousWorkLogId INT,
   PRIMARY KEY (id),
   KEY idx_worklog_member_board_date (memberId, boardId, regDate),
-  CONSTRAINT fk_worklog_member FOREIGN KEY (memberId) REFERENCES member (id)
+  KEY idx_worklog_project_status_date (projectId, workStatus, regDate),
+  KEY idx_worklog_previous (previousWorkLogId),
+  CONSTRAINT fk_worklog_member FOREIGN KEY (memberId) REFERENCES member (id),
+  CONSTRAINT fk_worklog_project FOREIGN KEY (projectId) REFERENCES project (id) ON DELETE SET NULL,
+  CONSTRAINT fk_worklog_previous FOREIGN KEY (previousWorkLogId) REFERENCES workLog (id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS workLogCollaborator (
+  workLogId INT NOT NULL,
+  memberId INT NOT NULL,
+  role VARCHAR(20) NOT NULL DEFAULT 'COLLABORATOR',
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (workLogId, memberId),
+  KEY idx_worklog_collaborator_member (memberId, workLogId),
+  CONSTRAINT fk_collaborator_worklog FOREIGN KEY (workLogId) REFERENCES workLog (id) ON DELETE CASCADE,
+  CONSTRAINT fk_collaborator_member FOREIGN KEY (memberId) REFERENCES member (id)
 );
 
 CREATE TABLE IF NOT EXISTS fileAttach (
