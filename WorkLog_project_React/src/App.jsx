@@ -21,6 +21,7 @@ import CustomerCenter from './pages/CustomerCenter';
 import About from './pages/About';
 import Guide from './pages/Guide';
 import Coming from './pages/Coming';
+import Preview from './pages/Preview';
 import FloatingChatBot from "./components/FloatingChatBot";
 // ✅ 새로 만들 레이아웃
 import MainLayout from './layouts/MainLayout';
@@ -37,6 +38,7 @@ function App(){
           {/* ✅ 로그인 / 회원가입 등은 공통 레이아웃 없이 단독 페이지 */}
           <Route path="/login" element={<Login />} />
           <Route path="/join" element={<Join />} />
+          <Route path="/preview" element={<Preview />} />
 
           {/* ✅ 여기부터는 “헤더 + 왼쪽 메뉴 + 가운데 내용만 변경” 되는 구간 */}
           <Route element={<MainLayout />}>

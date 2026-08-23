@@ -25,6 +25,7 @@ function LandingHome() {
           <Link to="/guide" className="no-underline hover:text-[#d95635]">이용 방법</Link>
         </nav>
         <div className="flex items-center gap-2">
+          <Link to="/preview" className="hidden rounded-full border border-[#e6cfc3] bg-[#fff8f4] px-4 py-2 text-xs font-bold text-[#c65b3d] no-underline hover:bg-white sm:inline-flex">미리보기 체험</Link>
           <Link to="/login" className="rounded-full border border-[#eadfd7] px-4 py-2 text-xs text-[#4e5664] no-underline hover:bg-white">로그인</Link>
           <Link to="/join" className="hidden rounded-full bg-[#d95d3b] px-4 py-2 text-xs font-bold text-white no-underline hover:bg-[#c95032] sm:inline-flex">무료로 시작하기</Link>
         </div>
@@ -39,7 +40,7 @@ function LandingHome() {
           <p className="mx-auto mt-6 max-w-[590px] text-sm leading-7 text-[#73767b] md:text-base">WorkLog는 업무일지, 주간·월간 보고, 인수인계를 하나의 흐름으로 연결합니다. 복잡한 도구 대신 매일의 일을 차근차근 기록해 보세요.</p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Link to="/join" className="rounded-xl bg-[#d95d3b] px-7 py-3.5 text-sm font-bold text-white no-underline shadow-[0_10px_30px_rgba(217,93,59,0.18)] hover:bg-[#c95032]">WorkLog 시작하기</Link>
-            <a href="#how" className="rounded-xl border border-[#e8dfd8] bg-white px-7 py-3.5 text-sm font-semibold text-[#515966] no-underline hover:bg-[#fffaf7]">화면 둘러보기</a>
+            <Link to="/preview" className="rounded-xl border border-[#e8dfd8] bg-white px-7 py-3.5 text-sm font-semibold text-[#515966] no-underline hover:bg-[#fffaf7]">로그인 없이 체험하기</Link>
           </div>
 
           <div className="relative mx-auto mt-20 hidden h-[300px] max-w-[980px] md:block" aria-label="WorkLog 업무 흐름 미리보기">
@@ -67,7 +68,7 @@ function LandingHome() {
           {features.map((feature) => <article key={feature.title} className="rounded-2xl border border-[#eee5de] bg-white p-7"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#fff1ea] text-[#d95d3b]">{feature.icon}</span><h2 className="mt-5 text-lg font-bold">{feature.title}</h2><p className="mt-3 text-sm leading-7 text-[#74777b]">{feature.text}</p></article>)}
         </div></section>
 
-        <section className="px-5 pb-20"><div className="mx-auto max-w-[1000px] rounded-[28px] bg-[#24334a] px-7 py-12 text-center text-white md:px-12"><h2 className="font-serif text-3xl font-bold">오늘의 업무부터 기록해 보세요</h2><p className="mt-3 text-sm text-white/65">가입 후 나만의 타임라인을 직접 구성할 수 있습니다.</p><Link to="/join" className="mt-7 inline-flex rounded-xl bg-[#e36a48] px-6 py-3 text-sm font-bold text-white no-underline hover:bg-[#ef7653]">무료로 시작하기</Link></div></section>
+        <section className="px-5 pb-20"><div className="mx-auto max-w-[1000px] rounded-[28px] bg-[#24334a] px-7 py-12 text-center text-white md:px-12"><h2 className="font-serif text-3xl font-bold">오늘의 업무부터 기록해 보세요</h2><p className="mt-3 text-sm text-white/65">가입 전에도 샘플 타임라인을 직접 수정해 볼 수 있습니다.</p><div className="mt-7 flex flex-wrap justify-center gap-3"><Link to="/preview" className="inline-flex rounded-xl border border-white/25 px-6 py-3 text-sm font-bold text-white no-underline hover:bg-white/10">먼저 체험하기</Link><Link to="/join" className="inline-flex rounded-xl bg-[#e36a48] px-6 py-3 text-sm font-bold text-white no-underline hover:bg-[#ef7653]">무료로 시작하기</Link></div></div></section>
       </main>
       <footer className="border-t border-[#eee7e1] px-5 py-7 text-center text-xs text-[#98938e]">© 2026 WorkLog. 매일의 업무를 연결합니다.</footer>
     </div>
