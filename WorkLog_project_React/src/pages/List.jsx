@@ -21,6 +21,7 @@ const BOARD_NAME_MAP = {
   8: "자주 묻는 질문 게시판",
   9: "오류사항 접수 게시판",
 };
+const WORK_STATUS_LABELS = { PLANNED: "예정", IN_PROGRESS: "진행 중", ON_HOLD: "보류", COMPLETED: "완료" };
 
 function List() {
   const navigate = useNavigate();
@@ -147,6 +148,13 @@ function List() {
                     >
                       {article.title}
                     </Link>
+                    {boardId === 4 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-[#fff0e9] px-2 py-0.5 text-[11px] font-bold text-[#c84f31]">{WORK_STATUS_LABELS[article.workStatus] || "예정"}</span>
+                        {article.projectName && <span className="rounded-full bg-[#f2f4f7] px-2 py-0.5 text-[11px] text-[#596274]">{article.projectName}</span>}
+                        {article.nextAction && <span className="max-w-[320px] truncate text-[11px] text-[#7a746f]">다음: {article.nextAction}</span>}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                     {article.writerName}

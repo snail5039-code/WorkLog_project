@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useRef } from "react";
+import React, { useEffect, useState, useContext, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -54,10 +54,31 @@ function Write() {
   const isFixedBoard = isTemplateBoard || isFaqBoard || isErrorBoard;
 
   const [isSubmitLoading, setIsSubmitLoading] = useState(false); // 얘가 요약할때 로딩 창임
+  const [projects, setProjects] = useState([]);
+  const [previousLogs, setPreviousLogs] = useState([]);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [projectCreating, setProjectCreating] = useState(false);
   // Context에서 로그인 ID를 가져옵니다.
   const { isLoginedId, authLoaded } = useContext(AuthContext);
   // 메인 콘텐츠 TextArea에 접근하기 위한 Ref
   const mainContentRef = useRef(null);
+
+  const loadStructuredOptions = useCallback(async () => {
+    try {
+      const [projectRes, logRes] = await Promise.all([
+        fetch(`${API_BASE}/api/projects`, { credentials: "include" }),
+        fetch(`${API_BASE}/api/usr/work/list?boardId=4&page=1&size=100`, { credentials: "include" }),
+      ]);
+      if (projectRes.ok) setProjects(await projectRes.json());
+      if (logRes.ok) {
+        const data = await logRes.json();
+        setPreviousLogs(data.items || []);
+      }
+    } catch (error) {
+      console.error("구조화 업무 옵션 조회 실패:", error);
+    }
+  }, []);
 
   useEffect(() => {
     form.setFieldsValue({ boardId: boardIdFromQuery });
@@ -75,6 +96,37 @@ function Write() {
       navigate("/login");
     }
   }, [authLoaded, isLoginedId, navigate]);
+
+  useEffect(() => {
+    if (authLoaded && isLoginedId !== 0) loadStructuredOptions();
+  }, [authLoaded, isLoginedId, loadStructuredOptions]);
+
+  const createProject = async () => {
+    if (!newProjectName.trim()) {
+      message.warning("프로젝트명을 입력해주세요.");
+      return;
+    }
+    try {
+      setProjectCreating(true);
+      const res = await fetch(`${API_BASE}/api/projects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: newProjectName.trim() }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const created = await res.json();
+      setProjects((prev) => [created, ...prev]);
+      form.setFieldValue("projectId", created.id);
+      setNewProjectName("");
+      setProjectModalOpen(false);
+      message.success("프로젝트가 생성되었습니다.");
+    } catch (error) {
+      message.error(error.message || "프로젝트 생성에 실패했습니다.");
+    } finally {
+      setProjectCreating(false);
+    }
+  };
 
   const handleTemplateChange = (value) => {
     // 지금 메인 내용에 뭐가 써져 있는지 확인
@@ -168,6 +220,12 @@ function Write() {
     // 문자열 "undefined" 로 바꿔서, 보조내용을 안 쓴 글의 DB 에 그 글자가 들어갔다.
     formData.append("sideContent", values.sideContent ?? "");
     formData.append("templateId", values.templateId || "TPL3");
+    if (boardId === 4) {
+      ["projectId", "workStatus", "priority", "startDate", "dueDate", "blocker", "nextAction", "previousWorkLogId"].forEach((key) => {
+        const value = values[key];
+        if (value !== undefined && value !== null && value !== "") formData.append(key, value);
+      });
+    }
 
     if (values.files && values.files.length > 0) {
       values.files.forEach((fileObj) => {
@@ -300,6 +358,33 @@ function Write() {
           </Form.Item>
         )}
 
+        {isDailyBoard && (
+          <section className="rounded-2xl border border-[#eadfd7] bg-[#fffaf6] p-4 md:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div><p className="text-sm font-bold text-[#26344a]">업무 흐름 정보</p><p className="mt-1 text-xs text-[#7a746f]">프로젝트와 다음 행동을 연결하면 보고서와 인수인계가 더 정확해집니다.</p></div>
+              <Button type="default" onClick={() => setProjectModalOpen(true)}>+ 프로젝트</Button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Form.Item label="프로젝트" name="projectId" className="mb-0">
+                <Select allowClear placeholder="프로젝트 선택" options={projects.map((project) => ({ value: project.id, label: project.name }))} />
+              </Form.Item>
+              <Form.Item label="이전 기록" name="previousWorkLogId" className="mb-0">
+                <Select allowClear showSearch optionFilterProp="label" placeholder="이어지는 이전 기록" options={previousLogs.map((log) => ({ value: log.id, label: log.title }))} />
+              </Form.Item>
+              <Form.Item label="업무 상태" name="workStatus" initialValue="PLANNED" className="mb-0">
+                <Select options={[{ value: "PLANNED", label: "예정" }, { value: "IN_PROGRESS", label: "진행 중" }, { value: "ON_HOLD", label: "보류" }, { value: "COMPLETED", label: "완료" }]} />
+              </Form.Item>
+              <Form.Item label="우선순위" name="priority" initialValue="NORMAL" className="mb-0">
+                <Select options={[{ value: "HIGH", label: "높음" }, { value: "NORMAL", label: "보통" }, { value: "LOW", label: "낮음" }]} />
+              </Form.Item>
+              <Form.Item label="시작일" name="startDate" className="mb-0"><Input type="date" /></Form.Item>
+              <Form.Item label="마감일" name="dueDate" className="mb-0"><Input type="date" /></Form.Item>
+              <Form.Item label="장애물·이슈" name="blocker" className="mb-0 md:col-span-2"><Input placeholder="진행을 막는 이슈가 있다면 적어주세요." /></Form.Item>
+              <Form.Item label="다음 행동" name="nextAction" className="mb-0 md:col-span-2"><Input placeholder="이 기록 다음에 이어서 할 일을 적어주세요." /></Form.Item>
+            </div>
+          </section>
+        )}
+
         {/* MainContent 입력 영역: 레이블을 Form.Item 밖으로 분리 */}
         <div className="mb-2 text-sm font-semibold text-[#364154]">
           업무 내용
@@ -368,6 +453,9 @@ function Write() {
         ]}
       >
         <p>{modalMessage}</p>
+      </Modal>
+      <Modal title="새 프로젝트" open={projectModalOpen} onCancel={() => setProjectModalOpen(false)} onOk={createProject} confirmLoading={projectCreating} okText="생성" cancelText="취소">
+        <Input value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} onPressEnter={createProject} placeholder="프로젝트명을 입력하세요." maxLength={150} />
       </Modal>
     </div>
   );

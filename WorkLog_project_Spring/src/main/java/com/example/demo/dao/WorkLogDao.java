@@ -145,20 +145,22 @@ public interface WorkLogDao {
 	public List<WorkLog> getMyWorkLogsPaged(int memberId, int offset, int size);
 	
 	@Select("""
-	        select w.*, m.loginId as writerName
+	        select w.*, m.loginId as writerName, p.name as projectName
 				 from workLog as w
 			     inner join member as m
 			     on w.memberId = m.id
+			     left join project as p on w.projectId = p.id
 			     order by w.id desc
 			     limit #{size} offset #{offset}
 	        """)
 	public List<WorkLog> getBoardListPagedAll(int offset, int size);
 	
 	@Select("""
-	        select w.*, m.loginId as writerName
+	        select w.*, m.loginId as writerName, p.name as projectName
 	        	 from workLog as w
 				 inner join member as m
 			     on w.memberId = m.id
+			     left join project as p on w.projectId = p.id
 			     where w.boardId = #{boardId}
 			     order by w.id desc
 			     limit #{size} offset #{offset}
