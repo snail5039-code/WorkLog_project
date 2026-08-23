@@ -1,14 +1,16 @@
 // src/components/FloatingChatBot.jsx
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useLocation } from "react-router-dom";
 import SiteChatBot from "./SiteChatBot";
+import { AuthContext } from "../context/AuthContext";
 
 function FloatingChatBot() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const { isLoginedId } = useContext(AuthContext);
 
-  // 홈은 업무 흐름과 기록에 집중하고, 챗봇은 실제 업무 화면에서만 제공한다.
-  if (pathname === "/") return null;
+  // 소개 페이지에서는 숨기고, 로그인한 사용자의 홈에서는 업무 보조로 제공한다.
+  if (pathname === "/" && isLoginedId === 0) return null;
 
   return (
     <div
