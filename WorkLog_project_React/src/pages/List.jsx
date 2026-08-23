@@ -3,7 +3,6 @@ import {
   Link,
   useNavigate,
   useSearchParams,
-  useParams,
 } from "react-router-dom";
 import { message, Pagination } from "antd";
 import { AuthContext } from "../context/AuthContext";
@@ -32,8 +31,6 @@ function List() {
   const boardId = boardIdParam ? Number(boardIdParam) : null;
   const boardTitle = boardId ? BOARD_NAME_MAP[boardId] || "게시글" : "게시글";
   const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(false);
-
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -67,7 +64,6 @@ function List() {
     const controller = new AbortController();
 
     async function fetchList() {
-      setLoading(true);
       try {
         let url = `${API_BASE}/api/usr/work/list?page=${page}&size=${pageSize}`;
         if (boardIdParam != null) {
@@ -89,14 +85,9 @@ function List() {
 
         console.error(error);
         message.error(error.message);
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
       }
     }
     fetchList();
-
     return () => controller.abort();
   }, [authLoaded, isLoginedId, boardIdParam, page, pageSize]);
 
@@ -174,7 +165,6 @@ function List() {
                 </td>
               </tr>
             )}
-                     
           </tbody>
         </table>
         {/* 페이징 + 글쓰기 버튼 줄 */}

@@ -62,7 +62,8 @@ function Logout() {
         openModal("로그아웃 실패!");
       }
     } catch (error) {
-      console.error("오류 발생");
+      console.error("로그아웃 요청 오류:", error);
+      openModal("서버와 연결할 수 없습니다.");
     }
   };
   return (

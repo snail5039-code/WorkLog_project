@@ -39,7 +39,6 @@ function Detail() {
   const { id } = useParams();
   const [workLog, setWorkLog] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [fileAttaches, setFileAttaches] = useState([]); // 파일들임
 
   const [summaryJsonData, setSummaryJsonData] = useState(null);
   const [summaryContentMarkdown, setSummaryContentMarkdown] = useState(null); // JSON이 아닌 원본 내용을 표시하기 위해 유지
@@ -68,7 +67,7 @@ function Detail() {
     if (!text) return null;
 
     // 1. JSON 시작 문자 ({ 또는 [)의 인덱스를 찾습니다.
-    const startIndex = text.search(/[\{\[]/);
+    const startIndex = text.search(/[{[]/);
     if (startIndex === -1) {
       console.warn("JSON 시작 문자({ 또는 [)를 찾을 수 없습니다.");
       return null;
@@ -123,7 +122,6 @@ function Detail() {
 
         const fetchedData = await response.json();
         setWorkLog(fetchedData);
-        setFileAttaches(fetchedData.fileAttaches || []);
 
         // ✅ 요약 파싱
         if (fetchedData.summaryContent) {

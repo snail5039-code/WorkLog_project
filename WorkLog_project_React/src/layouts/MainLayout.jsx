@@ -1,7 +1,6 @@
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 import { Link, Outlet } from "react-router-dom";
 import LogoutButton from "../pages/Logout";
-import { AuthContext } from "../context/AuthContext";
 import MainHeader from "../components/MainHeader";
 
 // ✅ 아코디언 섹션 컴포넌트 (1차 메뉴용)
@@ -58,9 +57,6 @@ function AccordionSection({ label, isOpen, onToggle, children }) {
 }
 
 function MainLayout() {
-  const { isLoginedId } = useContext(AuthContext);
-  const isLogined = isLoginedId !== 0;
-
   // ✅ 1차 메뉴(업무 관련 / 인수인계 관련 / 그 외 게시판) 접었다 펼치는 상태
   const [openMenus, setOpenMenus] = useState({
     board: true, // 게시판

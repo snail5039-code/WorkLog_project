@@ -39,8 +39,6 @@ function Login() {
       const user = result.user;
       const idToken = await user.getIdToken();
 
-      console.log("파이어베이스 아이디 토큰: ", idToken);
-
       const response = await fetch(
         `${API_BASE}/api/auth/firebase-login`,
         {
@@ -52,13 +50,16 @@ function Login() {
       );
 
       const data = await response.json();
-      console.log("백엔드 응답: ", data);
-
       if (!response.ok) {
         message.error(data.error || "소셜 로그인 서버 호출 실패");
         return;
       }
-      setIsLoginedId(data);
+      const memberId = typeof data === "number" ? data : data?.id;
+      if (!Number.isInteger(memberId) || memberId <= 0) {
+        message.error("로그인 응답을 확인할 수 없습니다.");
+        return;
+      }
+      setIsLoginedId(memberId);
       message.success(`${providerType} 계정으로 로그인 성공!`);
       navigate("/");
     } catch (error) {
@@ -84,7 +85,7 @@ function Login() {
       });
       navigate("/");
     }
-  }, []);
+  }, [isLoginedId, navigate]);
   if (!authLoaded) {
     return null;
   }
@@ -137,10 +138,16 @@ function Login() {
         return;
       }
 
+      const memberId = typeof data === "number" ? data : data?.id;
+      if (!Number.isInteger(memberId) || memberId <= 0) {
+        openModal("로그인 응답을 확인할 수 없습니다.");
+        return;
+      }
+
       // ✅ 여기까지 통과했으면 진짜 성공
       openModal(values.loginId + "님 환영합니다.");
       setTimeout(() => {
-        setIsLoginedId(data); // data가 userId면 그대로, 객체면 data.id 이런 식으로
+        setIsLoginedId(memberId);
         navigate("/");
       }, 1200);
     } catch (error) {

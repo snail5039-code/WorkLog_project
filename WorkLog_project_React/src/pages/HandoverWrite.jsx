@@ -2,7 +2,6 @@ import React, { useState, useContext, useEffect } from "react";
 import { Card, Form, Input, DatePicker, Button, message, Spin, Modal } from "antd";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { div } from "framer-motion/client";
 import { API_BASE } from "../config/api";
 
 const { RangePicker } = DatePicker;

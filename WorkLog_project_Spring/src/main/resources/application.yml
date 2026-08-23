@@ -19,8 +19,9 @@ spring:
       max-request-size: 50MB
   config:
     import:
-      - classpath:ai.yml
-      - classpath:send.yml
+      - optional:classpath:ai.yml
+      # 메일 비밀 설정이 없는 CI/테스트 환경에서도 앱 컨텍스트가 시작되어야 한다.
+      - optional:classpath:send.yml
 
 
 #  ai:

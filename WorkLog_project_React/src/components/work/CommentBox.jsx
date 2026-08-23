@@ -1,5 +1,5 @@
 // src/components/work/CommentBox.jsx
-import React, { useEffect, useState, useContext } from "react";
+import React, { useCallback, useEffect, useState, useContext } from "react";
 import { List, Input, Button, message, Popconfirm, Typography } from "antd";
 import { AuthContext } from "../../context/AuthContext";
 import { API_BASE } from "../../config/api";
@@ -19,7 +19,7 @@ function CommentBox({ workLogId }) {
   const [editingContent, setEditingContent] = useState(""); // 수정 textarea 내용
 
   // 댓글 목록 가져오기
-  const fetchReplies = async () => {
+  const fetchReplies = useCallback(async () => {
     if (!workLogId) return;
     try {
       setLoadingList(true);
@@ -42,11 +42,11 @@ function CommentBox({ workLogId }) {
     } finally {
       setLoadingList(false);
     }
-  };
+  }, [workLogId]);
 
   useEffect(() => {
     fetchReplies();
-  }, [workLogId]);
+  }, [fetchReplies]);
 
   // 작성
   const handleSubmit = async () => {
