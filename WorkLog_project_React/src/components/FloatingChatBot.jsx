@@ -10,7 +10,7 @@ function FloatingChatBot() {
   const { isLoginedId } = useContext(AuthContext);
 
   // 소개 페이지에서는 숨기고, 로그인한 사용자의 홈에서는 업무 보조로 제공한다.
-  if ((pathname === "/" && isLoginedId === 0) || pathname === "/preview") return null;
+  if ((pathname === "/" && isLoginedId === 0) || pathname === "/preview" || pathname === "/developer") return null;
 
   return (
     <div

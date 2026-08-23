@@ -43,5 +43,10 @@ server:
   port: 8081
   tomcat:
     max-http-header-size: 65536
+worklog:
+  developer-mode:
+    # 운영 인증 우회를 막기 위해 기본값은 반드시 false다.
+    enabled: ${WORKLOG_DEVELOPER_MODE_ENABLED:false}
+    member-id: ${WORKLOG_DEVELOPER_MEMBER_ID:1}
 #  servlet:
 #    context-path: /test

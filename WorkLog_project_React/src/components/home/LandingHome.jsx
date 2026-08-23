@@ -25,6 +25,7 @@ function LandingHome() {
           <Link to="/guide" className="no-underline hover:text-[#d95635]">이용 방법</Link>
         </nav>
         <div className="flex items-center gap-2">
+          {import.meta.env.DEV && <Link to="/developer" className="hidden rounded-full px-3 py-2 text-xs font-semibold text-[#7a6f68] no-underline hover:bg-white lg:inline-flex">개발자 모드</Link>}
           <Link to="/preview" className="hidden rounded-full border border-[#e6cfc3] bg-[#fff8f4] px-4 py-2 text-xs font-bold text-[#c65b3d] no-underline hover:bg-white sm:inline-flex">미리보기 체험</Link>
           <Link to="/login" className="rounded-full border border-[#eadfd7] px-4 py-2 text-xs text-[#4e5664] no-underline hover:bg-white">로그인</Link>
           <Link to="/join" className="hidden rounded-full bg-[#d95d3b] px-4 py-2 text-xs font-bold text-white no-underline hover:bg-[#c95032] sm:inline-flex">무료로 시작하기</Link>

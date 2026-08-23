@@ -50,6 +50,7 @@ function Logout() {
           credentials: "include",
         }
       );
+      sessionStorage.removeItem("worklog:developer-mode");
 
       if (response.ok) {
         const data = await response.json();
