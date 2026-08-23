@@ -26,7 +26,7 @@ function FloatingChatBot() {
         <div
           style={{
             marginBottom: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          boxShadow: "0 12px 36px rgba(72,48,34,0.18)",
           }}
         >
           <SiteChatBot />
@@ -41,10 +41,11 @@ function FloatingChatBot() {
           height: "56px",
           borderRadius: "50%",
           border: "none",
-          backgroundColor: "#007bff",
+          backgroundColor: "#d95d3b",
           color: "#fff",
           fontSize: "24px",
           cursor: "pointer",
+          boxShadow: "0 10px 24px rgba(217,93,59,0.28)",
         }}
         title="사이트 챗봇"
       >
