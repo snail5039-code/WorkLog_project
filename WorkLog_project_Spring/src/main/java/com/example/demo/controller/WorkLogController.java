@@ -425,20 +425,37 @@ public class WorkLogController {
 	@GetMapping("/usr/work/list")
 	// size 기본값은 10 이다. 예전 기본값은 1 이라 size 를 빼고 부르면 한 건만 왔다.
 	public Map<String, Object> showList(@RequestParam(defaultValue = "1") int page,
-			@RequestParam(defaultValue = "10") int size, @RequestParam(required = false) Integer boardId) {
+			@RequestParam(defaultValue = "10") int size, @RequestParam(required = false) Integer boardId,
+			@RequestParam(required = false) Integer projectId,
+			@RequestParam(required = false) String workStatus,
+			@RequestParam(required = false) String priority,
+			@RequestParam(required = false) String keyword) {
 		if (page < 1)
 			page = 1;
 		if (size <= 0 || size > 100)
 			size = 10;
 
-		List<WorkLog> items = workLogService.getBoardListPaged(boardId, page, size);
-		int totalCount = workLogService.getBoardListCount(boardId);
+		workStatus = normalizeListFilter(workStatus, List.of("PLANNED", "IN_PROGRESS", "ON_HOLD", "COMPLETED"), "업무 상태");
+		priority = normalizeListFilter(priority, List.of("LOW", "NORMAL", "HIGH"), "우선순위");
+		keyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+
+		List<WorkLog> items = workLogService.getBoardListPaged(boardId, projectId, workStatus, priority, keyword, page, size);
+		int totalCount = workLogService.getBoardListCount(boardId, projectId, workStatus, priority, keyword);
 
 		Map<String, Object> result = new HashMap<>();
 		result.put("items", items);
 		result.put("totalCount", totalCount);
 
 		return result;
+	}
+
+	private String normalizeListFilter(String value, List<String> allowed, String label) {
+		if (value == null || value.isBlank()) return null;
+		String normalized = value.trim().toUpperCase();
+		if (!allowed.contains(normalized)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " 필터 값이 올바르지 않습니다.");
+		}
+		return normalized;
 	}
 
 	@GetMapping("/handover/list") // 페이징 처리도 같이함

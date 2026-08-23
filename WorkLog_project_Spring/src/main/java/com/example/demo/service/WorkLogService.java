@@ -198,6 +198,17 @@ public class WorkLogService {
 	    }
 	}
 
+	public List<WorkLog> getBoardListPaged(Integer boardId, Integer projectId, String workStatus,
+			String priority, String keyword, int page, int size) {
+		int offset = (page - 1) * size;
+		return workLogDao.getBoardListPagedFiltered(boardId, projectId, workStatus, priority, keyword, offset, size);
+	}
+
+	public int getBoardListCount(Integer boardId, Integer projectId, String workStatus,
+			String priority, String keyword) {
+		return workLogDao.getBoardListCountFiltered(boardId, projectId, workStatus, priority, keyword);
+	}
+
 	public List<WorkLog> getLogsByDateRange(int memberId, LocalDate s, LocalDate e) {
 		return this.workLogDao.getLogsByDateRange(memberId, s, e);
 	}

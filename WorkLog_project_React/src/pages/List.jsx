@@ -22,6 +22,7 @@ const BOARD_NAME_MAP = {
   9: "오류사항 접수 게시판",
 };
 const WORK_STATUS_LABELS = { PLANNED: "예정", IN_PROGRESS: "진행 중", ON_HOLD: "보류", COMPLETED: "완료" };
+const EMPTY_FILTERS = { keyword: "", projectId: "", workStatus: "", priority: "" };
 
 function List() {
   const navigate = useNavigate();
@@ -35,6 +36,9 @@ function List() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [projects, setProjects] = useState([]);
+  const [filterDraft, setFilterDraft] = useState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   useEffect(() => {
     if (!authLoaded) return; // 세션 아직 로딩 중이면 아무것도 안 함
@@ -51,7 +55,24 @@ function List() {
 
   useEffect(() => {
     setPage(1);
+    setFilterDraft(EMPTY_FILTERS);
+    setFilters(EMPTY_FILTERS);
   }, [boardIdParam]);
+
+  useEffect(() => {
+    if (!authLoaded || isLoginedId === 0 || boardId !== 4) return;
+    const controller = new AbortController();
+    fetch(`${API_BASE}/api/projects`, { credentials: "include", signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("프로젝트 목록 조회 실패");
+        return res.json();
+      })
+      .then(setProjects)
+      .catch((error) => {
+        if (error.name !== "AbortError") message.error(error.message);
+      });
+    return () => controller.abort();
+  }, [authLoaded, isLoginedId, boardId]);
 
   useEffect(() => {
     if (!authLoaded) return;
@@ -66,10 +87,16 @@ function List() {
 
     async function fetchList() {
       try {
-        let url = `${API_BASE}/api/usr/work/list?page=${page}&size=${pageSize}`;
+        const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
         if (boardIdParam != null) {
-          url += `&boardId=${boardIdParam}`;
+          params.set("boardId", boardIdParam);
         }
+        if (boardId === 4) {
+          Object.entries(filters).forEach(([key, value]) => {
+            if (value) params.set(key, value);
+          });
+        }
+        const url = `${API_BASE}/api/usr/work/list?${params.toString()}`;
 
         const res = await fetch(url, {
           credentials: "include",
@@ -90,7 +117,23 @@ function List() {
     }
     fetchList();
     return () => controller.abort();
-  }, [authLoaded, isLoginedId, boardIdParam, page, pageSize]);
+  }, [authLoaded, isLoginedId, boardId, boardIdParam, filters, page, pageSize]);
+
+  const updateFilter = (key, value) => {
+    setFilterDraft((current) => ({ ...current, [key]: value }));
+  };
+
+  const applyFilters = (event) => {
+    event.preventDefault();
+    setPage(1);
+    setFilters({ ...filterDraft, keyword: filterDraft.keyword.trim() });
+  };
+
+  const resetFilters = () => {
+    setFilterDraft(EMPTY_FILTERS);
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+  };
 
   if (!authLoaded) {
     return (
@@ -112,6 +155,36 @@ function List() {
       <h2 className="mb-6 mt-2 border-b border-[#eee5de] pb-5 font-serif text-3xl font-bold text-[#1f2e45]">
         {boardTitle} 목록
       </h2>
+
+      {boardId === 4 && (
+        <form onSubmit={applyFilters} className="mb-6 grid gap-3 rounded-2xl border border-[#eee2da] bg-[#fffaf6] p-4 md:grid-cols-[minmax(190px,1fr)_repeat(3,minmax(130px,0.6fr))_auto]">
+          <input
+            value={filterDraft.keyword}
+            onChange={(event) => updateFilter("keyword", event.target.value)}
+            placeholder="제목·내용·다음 할 일 검색"
+            aria-label="업무 기록 검색어"
+            className="rounded-xl border border-[#dfd5ce] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#d95d3b]"
+          />
+          <select value={filterDraft.projectId} onChange={(event) => updateFilter("projectId", event.target.value)} aria-label="프로젝트 필터" className="rounded-xl border border-[#dfd5ce] bg-white px-3 py-2.5 text-sm">
+            <option value="">모든 프로젝트</option>
+            {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select>
+          <select value={filterDraft.workStatus} onChange={(event) => updateFilter("workStatus", event.target.value)} aria-label="업무 상태 필터" className="rounded-xl border border-[#dfd5ce] bg-white px-3 py-2.5 text-sm">
+            <option value="">모든 상태</option>
+            {Object.entries(WORK_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <select value={filterDraft.priority} onChange={(event) => updateFilter("priority", event.target.value)} aria-label="우선순위 필터" className="rounded-xl border border-[#dfd5ce] bg-white px-3 py-2.5 text-sm">
+            <option value="">모든 우선순위</option>
+            <option value="HIGH">높음</option>
+            <option value="NORMAL">보통</option>
+            <option value="LOW">낮음</option>
+          </select>
+          <div className="flex gap-2">
+            <button type="submit" className="rounded-xl bg-[#d95d3b] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#c84f31]">적용</button>
+            <button type="button" onClick={resetFilters} className="rounded-xl border border-[#dfd5ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#596274] hover:bg-[#f7f2ee]">초기화</button>
+          </div>
+        </form>
+      )}
 
       <div className="overflow-x-auto">
         <table className="min-w-full overflow-hidden rounded-xl border border-[#eadfd7]">

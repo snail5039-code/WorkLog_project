@@ -179,6 +179,54 @@ public interface WorkLogDao {
 	        	where boardId = #{boardId}
 	        """)
 	public int getBoardListCountByBoard(Integer boardId);
+
+	@Select("""
+			<script>
+			select w.*, m.loginId as writerName, p.name as projectName
+			  from workLog w
+			  inner join member m on w.memberId = m.id
+			  left join project p on w.projectId = p.id
+			 <where>
+			   <if test="boardId != null and boardId != 0">w.boardId = #{boardId}</if>
+			   <if test="projectId != null">and w.projectId = #{projectId}</if>
+			   <if test="workStatus != null and workStatus != ''">and w.workStatus = #{workStatus}</if>
+			   <if test="priority != null and priority != ''">and w.priority = #{priority}</if>
+			   <if test="keyword != null and keyword != ''">
+			     and (w.title like concat('%', #{keyword}, '%')
+			       or w.mainContent like concat('%', #{keyword}, '%')
+			       or w.nextAction like concat('%', #{keyword}, '%')
+			       or w.blocker like concat('%', #{keyword}, '%'))
+			   </if>
+			 </where>
+			 order by w.id desc
+			 limit #{size} offset #{offset}
+			</script>
+			""")
+	List<WorkLog> getBoardListPagedFiltered(@Param("boardId") Integer boardId,
+			@Param("projectId") Integer projectId, @Param("workStatus") String workStatus,
+			@Param("priority") String priority, @Param("keyword") String keyword,
+			@Param("offset") int offset, @Param("size") int size);
+
+	@Select("""
+			<script>
+			select count(*) from workLog w
+			 <where>
+			   <if test="boardId != null and boardId != 0">w.boardId = #{boardId}</if>
+			   <if test="projectId != null">and w.projectId = #{projectId}</if>
+			   <if test="workStatus != null and workStatus != ''">and w.workStatus = #{workStatus}</if>
+			   <if test="priority != null and priority != ''">and w.priority = #{priority}</if>
+			   <if test="keyword != null and keyword != ''">
+			     and (w.title like concat('%', #{keyword}, '%')
+			       or w.mainContent like concat('%', #{keyword}, '%')
+			       or w.nextAction like concat('%', #{keyword}, '%')
+			       or w.blocker like concat('%', #{keyword}, '%'))
+			   </if>
+			 </where>
+			</script>
+			""")
+	int getBoardListCountFiltered(@Param("boardId") Integer boardId,
+			@Param("projectId") Integer projectId, @Param("workStatus") String workStatus,
+			@Param("priority") String priority, @Param("keyword") String keyword);
 	
 	@Select("""
 			select * 
