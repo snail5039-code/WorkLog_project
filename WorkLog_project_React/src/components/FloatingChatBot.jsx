@@ -1,9 +1,14 @@
 // src/components/FloatingChatBot.jsx
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
 import SiteChatBot from "./SiteChatBot";
 
 function FloatingChatBot() {
   const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  // 홈은 업무 흐름과 기록에 집중하고, 챗봇은 실제 업무 화면에서만 제공한다.
+  if (pathname === "/") return null;
 
   return (
     <div
