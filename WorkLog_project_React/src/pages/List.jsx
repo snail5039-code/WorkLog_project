@@ -104,17 +104,18 @@ function List() {
     return null;
   }
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-white shadow-lg rounded-xl">
+    <div className="mx-auto max-w-5xl rounded-[24px] border border-[#eadfd7] bg-white p-6 shadow-[0_14px_45px_rgba(70,49,35,0.06)] md:p-8">
       <div className="mb-4"></div>
 
-      <h2 className="text-3xl font-bold mb-6 text-gray-800 border-b pb-2">
+      <p className="text-xs font-bold tracking-[0.18em] text-[#d95d3b]">WORK RECORDS</p>
+      <h2 className="mb-6 mt-2 border-b border-[#eee5de] pb-5 font-serif text-3xl font-bold text-[#1f2e45]">
         {boardTitle} 목록
       </h2>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 border border-gray-300">
+        <table className="min-w-full overflow-hidden rounded-xl border border-[#eadfd7]">
           <thead>
-            <tr className="bg-gray-100">
+            <tr className="bg-[#fff8f3]">
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-1/12">
                 번호
               </th>
@@ -134,7 +135,7 @@ function List() {
               articles.map((article) => (
                 <tr
                   key={article.id}
-                  className="hover:bg-gray-50 transition duration-150 ease-in-out"
+                  className="transition duration-150 ease-in-out hover:bg-[#fffaf6]"
                 >
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                     {article.id}
@@ -142,7 +143,7 @@ function List() {
                   <td className="px-4 py-3 whitespace-normal text-sm font-medium">
                     <Link
                       to={`/detail/${article.id}`}
-                      className="text-gray-800 hover:text-indigo-600 transition duration-150"
+                      className="font-semibold text-[#26344a] transition duration-150 hover:text-[#c84f31]"
                     >
                       {article.title}
                     </Link>
@@ -189,7 +190,7 @@ function List() {
             <button
               type="button"
               onClick={() => navigate(`/write?boardId=${boardId}`)}
-              className="ml-4 px-5 py-2 rounded  text-white text-sm font-semibold shadow hover:border"
+              className="ml-4 rounded-xl bg-[#d95d3b] px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#c84f31]"
             >
               글쓰기
             </button>

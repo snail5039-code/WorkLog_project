@@ -30,7 +30,8 @@ function HandoverWrite() {
   if (!authLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Spin size="large" tip="로그인 상태 확인 중..." />
+        <Spin size="large" />
+        <span className="ml-3 text-sm text-[#747b87]">로그인 상태 확인 중...</span>
       </div>
     );
   }

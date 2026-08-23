@@ -207,11 +207,9 @@ function Write() {
   };
 
   return (
-    <div className="app-container max-w-2xl mx-auto p-6 space-y-4">
+    <div className="app-container mx-auto max-w-3xl space-y-4 rounded-[24px] border border-[#eadfd7] bg-white p-6 shadow-[0_14px_45px_rgba(70,49,35,0.06)] md:p-8">
       <div className="flex justify-between">
-        <div className="text-xl font-bold p-2 border-b text-start">
-          WorkLog Write
-        </div>
+        <div><p className="text-xs font-bold tracking-[0.18em] text-[#d95d3b]">NEW RECORD</p><h1 className="mt-2 font-serif text-3xl font-bold text-[#1f2e45]">오늘의 업무 기록</h1><p className="mt-2 text-sm text-[#747b87]">완벽하게 정리하기보다, 오늘의 맥락을 짧고 솔직하게 남겨보세요.</p></div>
       </div>
       <Form
         form={form}
@@ -223,7 +221,7 @@ function Write() {
         {/* ✅ 게시판 선택 */}
         <Form.Item
           label={
-            <span className="text-lg font-semibold text-gray-700">게시판</span>
+            <span className="text-sm font-semibold text-[#364154]">기록 유형</span>
           }
           name="boardId"
           rules={[{ required: true, message: "게시판을 선택해 주세요." }]}
@@ -273,7 +271,7 @@ function Write() {
         )}
         <Form.Item
           label={
-            <span className="text-lg font-semibold text-gray-700">Title</span>
+            <span className="text-sm font-semibold text-[#364154]">제목</span>
           }
           name="title"
           rules={[{ required: true, message: "제목을 입력해주세요" }]}
@@ -304,8 +302,8 @@ function Write() {
         )}
 
         {/* MainContent 입력 영역: 레이블을 Form.Item 밖으로 분리 */}
-        <div className="text-lg font-semibold text-gray-700 mb-2">
-          MainContent
+        <div className="mb-2 text-sm font-semibold text-[#364154]">
+          업무 내용
         </div>
         <Form.Item
           name="mainContent"
@@ -313,7 +311,7 @@ function Write() {
             { required: true, message: "메인 작성 내용을 입력해주세요." },
           ]}
           // 배경색, 테두리, 그림자 추가하여 Toast UI와 유사한 시각적 효과 부여
-          className="bg-gray-50 border border-gray-200 rounded-lg shadow-md transition duration-200"
+          className="rounded-xl border border-[#e7ddd6] bg-[#fffdfb] transition duration-200"
         >
           <Input.TextArea
             ref={mainContentRef} // ref 연결
@@ -345,7 +343,7 @@ function Write() {
           <Button
             type="primary"
             htmlType="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600"
+            className="w-full !border-[#d95d3b] !bg-[#d95d3b] !text-white hover:!border-[#c84f31] hover:!bg-[#c84f31]"
             disabled={isSubmitLoading}
           >
             {isSubmitLoading ? (
@@ -354,7 +352,7 @@ function Write() {
                 AI 요약 처리 중...
               </div>
             ) : (
-              "등록하기"
+              "기록 저장하기"
             )}
           </Button>
         </Form.Item>

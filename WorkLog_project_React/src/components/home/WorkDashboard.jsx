@@ -14,10 +14,12 @@ const defaultEntries = [
   { id: "7", start: "17:30", end: "18:00", title: "데일리 체크인", detail: "오늘 업무 마무리 및 내일 계획", status: "3명", tone: "coral" },
 ];
 
-const positions = [
-  { x: "7%", top: 8, line: 120 }, { x: "16%", top: 292, line: -74 }, { x: "29%", top: 22, line: 114 },
-  { x: "40%", top: 304, line: -68 }, { x: "62%", top: 28, line: 112 }, { x: "56%", top: 304, line: -66 }, { x: "82%", top: 20, line: 118 },
-];
+const CARD_STEP = 218;
+const getTimelinePosition = (index) => ({
+  x: 42 + index * CARD_STEP,
+  top: index % 2 === 0 ? 18 + (index % 3) * 7 : 292 + (index % 3) * 6,
+  line: index % 2 === 0 ? 112 : -70,
+});
 
 const toneStyles = {
   coral: { card: "border-[#efc9bb] bg-[#fffaf7]", badge: "bg-[#fff0ea] text-[#d85b39]", dot: "#df6948" },
@@ -36,7 +38,7 @@ const workMenus = [
 function loadEntries(storageKey) {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    if (Array.isArray(saved) && saved.length > 0) return saved.slice(0, positions.length);
+    if (Array.isArray(saved) && saved.length > 0) return saved;
   } catch {
     localStorage.removeItem(storageKey);
   }
@@ -83,11 +85,11 @@ function WorkDashboard({ userId, previewMode = false }) {
   const [isNew, setIsNew] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(true);
   const today = useMemo(() => formatToday(), []);
+  const timelineWidth = Math.max(1440, entries.length * CARD_STEP + 120);
 
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(entries)); }, [entries, storageKey]);
 
   const openNew = () => {
-    if (entries.length >= positions.length) return;
     setIsNew(true); setEditing({ id: crypto.randomUUID(), start: "09:00", end: "10:00", title: "", detail: "", status: "예정", tone: "coral" });
   };
   const saveEntry = (entry) => {
@@ -104,10 +106,10 @@ function WorkDashboard({ userId, previewMode = false }) {
       <header className="flex min-h-[74px] items-center justify-between border-b border-[#eee7e1] px-5 md:px-9"><HomeLogo /><div className="hidden items-center gap-3 md:flex"><strong className="font-serif text-base">{today}</strong><span className="text-[#d96543]">☼</span><span className="text-xs text-[#8b8984]">오늘의 업무 흐름</span></div><div className="flex items-center gap-3">{previewMode ? <><Link to="/" className="text-xs font-semibold text-[#4f5763] no-underline">소개로 돌아가기</Link><Link to="/join" className="rounded-full bg-[#d95d3b] px-4 py-2 text-xs font-bold text-white no-underline">무료로 시작하기</Link></> : <><Link to="/mypage" className="text-xs text-[#4f5763] no-underline">내 정보</Link><LogoutButton /></>}</div></header>
       <nav className="mx-auto flex max-w-[1180px] gap-2 overflow-x-auto px-4 py-4" aria-label="WorkLog 주요 기능">{workMenus.map((menu) => previewMode ? <div key={menu.label} className="group flex min-w-[205px] flex-1 items-center gap-3 rounded-xl px-4 py-3"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#fff1ea] text-[#d75d3b]">{menu.icon}</span><span><strong className="block text-xs text-[#303947]">{menu.label}</strong><small className="mt-1 block text-[10px] text-[#94918c]">{menu.sub}</small></span></div> : <Link key={menu.label} to={menu.to} className="group flex min-w-[205px] flex-1 items-center gap-3 rounded-xl px-4 py-3 no-underline hover:bg-white"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#fff1ea] text-[#d75d3b]">{menu.icon}</span><span><strong className="block text-xs text-[#303947]">{menu.label}</strong><small className="mt-1 block text-[10px] text-[#94918c]">{menu.sub}</small></span></Link>)}</nav>
       <main className="mx-auto max-w-[1500px] px-4 pb-8 md:px-8">
-        <div className="flex items-center justify-between py-2"><div><span className="font-serif text-sm md:hidden">{today}</span><p className="hidden text-xs text-[#8a8782] md:block">카드를 선택하면 내용을 수정할 수 있습니다.</p></div><div className="flex gap-2"><button type="button" onClick={resetEntries} className="rounded-full border border-[#eadfd7] px-4 py-2 text-xs text-[#616772] hover:bg-white">기본값 복원</button><button type="button" onClick={openNew} disabled={entries.length >= positions.length} title={entries.length >= positions.length ? "타임라인에는 최대 7개까지 표시할 수 있습니다." : undefined} className="rounded-full bg-[#d95d3b] px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">+ 업무 흐름 추가</button></div></div>
-        <section className="relative hidden h-[455px] lg:block" aria-label="오늘의 업무 흐름"><svg className="absolute left-0 top-[203px] h-[110px] w-full" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true"><path d="M0 67 C115 76,145 49,255 46 S430 35,555 55 S750 91,890 68 S1080 48,1195 66 S1340 88,1440 64" fill="none" stroke="#334f73" strokeWidth="1.6" /></svg>{entries.map((entry, index) => <TimelineCard key={entry.id} entry={entry} position={positions[index]} onEdit={(item) => { setIsNew(false); setEditing(item); }} />)}<div className="absolute left-[46.5%] top-[215px] z-10 text-center"><span className="block text-[10px] font-bold text-[#d95d3b]">오늘</span><span className="mx-auto mt-1 block h-4 w-4 rounded-full border-[3px] border-[#f3c5b6] bg-[#d95d3b]" /></div></section>
+        <div className="flex items-center justify-between py-2"><div><span className="font-serif text-sm md:hidden">{today}</span><p className="hidden text-xs text-[#8a8782] md:block">카드를 선택하면 내용을 수정할 수 있습니다. 기록이 많아지면 좌우로 이동하세요.</p></div><div className="flex gap-2"><button type="button" onClick={resetEntries} className="rounded-full border border-[#eadfd7] px-4 py-2 text-xs text-[#616772] hover:bg-white">기본값 복원</button><button type="button" onClick={openNew} className="rounded-full bg-[#d95d3b] px-4 py-2 text-xs font-bold text-white hover:bg-[#c84f31]">+ 업무 흐름 추가</button></div></div>
+        <section className="hidden overflow-x-auto pb-3 lg:block" aria-label="오늘의 업무 흐름"><div className="relative h-[455px]" style={{ width: timelineWidth }}><svg className="absolute left-0 top-[203px] h-[110px] w-full" viewBox={`0 0 ${timelineWidth} 110`} preserveAspectRatio="none" aria-hidden="true"><path d={`M0 67 C${timelineWidth * .12} 76,${timelineWidth * .18} 34,${timelineWidth * .3} 50 S${timelineWidth * .5} 88,${timelineWidth * .62} 61 S${timelineWidth * .82} 40,${timelineWidth} 66`} fill="none" stroke="#334f73" strokeWidth="1.6" /></svg>{entries.map((entry, index) => <TimelineCard key={entry.id} entry={entry} position={getTimelinePosition(index)} onEdit={(item) => { setIsNew(false); setEditing(item); }} />)}<div className="absolute top-[215px] z-10 text-center" style={{ left: timelineWidth / 2 }}><span className="block text-[10px] font-bold text-[#d95d3b]">오늘</span><span className="mx-auto mt-1 block h-4 w-4 rounded-full border-[3px] border-[#f3c5b6] bg-[#d95d3b]" /></div></div></section>
         <section className="grid gap-3 py-5 lg:hidden">{entries.map((entry) => { const tone = toneStyles[entry.tone] ?? toneStyles.coral; return <button type="button" key={entry.id} onClick={() => { setIsNew(false); setEditing(entry); }} className={`rounded-xl border p-4 text-left ${tone.card}`}><div className="flex justify-between gap-3"><div><span className="text-[10px] text-[#8d8a84]">{entry.start} - {entry.end}</span><h3 className="mt-1 text-sm font-bold">{entry.title}</h3><p className="mt-1 text-xs text-[#6d7075]">{entry.detail}</p></div><span className={`h-fit rounded-full px-2 py-1 text-[10px] ${tone.badge}`}>{entry.status}</span></div></button>; })}</section>
-        <section className="overflow-hidden rounded-[22px] border border-[#eee5de] bg-white shadow-[0_14px_45px_rgba(70,49,35,0.06)]"><div className="flex items-center justify-between px-6 py-4"><button type="button" onClick={() => setRecordsOpen((value) => !value)} className="text-sm font-bold" aria-expanded={recordsOpen}>{recordsOpen ? "⌃" : "⌄"} 오늘의 업무 흐름 {entries.length}개</button><div className="flex gap-4">{previewMode ? <span className="text-xs text-[#a06a55]">샘플 기록</span> : <><Link to="/list?boardId=4" className="text-xs no-underline">전체 기록</Link><Link to="/write" className="text-xs no-underline">✎ 업무일지 작성</Link></>}</div></div>{recordsOpen && <div className="grid border-t border-[#f0ebe6] sm:grid-cols-2 lg:grid-cols-4">{entries.slice(0, 4).map((entry) => <button type="button" key={entry.id} onClick={() => { setIsNew(false); setEditing(entry); }} className="min-h-[88px] border-b border-r border-[#f0ebe6] px-5 py-4 text-left hover:bg-[#fffaf6]"><span className="text-[10px] text-[#99948f]">{entry.start} - {entry.end}</span><strong className="mt-1 block truncate text-xs">{entry.title}</strong><span className="mt-1 block truncate text-[10px] text-[#777a80]">{entry.detail}</span></button>)}</div>}</section>
+        <section className="overflow-hidden rounded-[22px] border border-[#eee5de] bg-white shadow-[0_14px_45px_rgba(70,49,35,0.06)]"><div className="flex items-center justify-between px-6 py-4"><button type="button" onClick={() => setRecordsOpen((value) => !value)} className="text-sm font-bold" aria-expanded={recordsOpen}>{recordsOpen ? "⌃" : "⌄"} 오늘의 업무 흐름 {entries.length}개</button><div className="flex gap-4">{previewMode ? <span className="text-xs text-[#a06a55]">샘플 기록</span> : <><Link to="/list?boardId=4" className="text-xs no-underline">전체 기록</Link><Link to="/write" className="text-xs no-underline">✎ 업무일지 작성</Link></>}</div></div>{recordsOpen && <div className="grid max-h-[360px] overflow-y-auto border-t border-[#f0ebe6] sm:grid-cols-2 lg:grid-cols-4">{entries.map((entry) => <button type="button" key={entry.id} onClick={() => { setIsNew(false); setEditing(entry); }} className="min-h-[88px] border-b border-r border-[#f0ebe6] px-5 py-4 text-left hover:bg-[#fffaf6]"><span className="text-[10px] text-[#99948f]">{entry.start} - {entry.end}</span><strong className="mt-1 block truncate text-xs">{entry.title}</strong><span className="mt-1 block truncate text-[10px] text-[#777a80]">{entry.detail}</span></button>)}</div>}</section>
         <p className="mt-6 text-center font-serif text-xs text-[#88837c]">❦ 작은 기록이 쌓여, 더 나은 업무 흐름을 만듭니다.</p>
       </main>
       {editing && <EntryModal entry={editing} isNew={isNew} onClose={() => setEditing(null)} onSave={saveEntry} onDelete={deleteEntry} />}
