@@ -4,7 +4,7 @@ import MainHeader from "../components/MainHeader";
 
 const sections = [
   { key: "board", label: "기록", links: [["/write", "새 기록 작성"], ["/list", "전체 기록"]] },
-  { key: "work", label: "업무일지", links: [["/weeklyWrite", "주간 업무일지 작성"], ["/MonthlyWrite", "월간 업무일지 작성"], ["/list?boardId=4", "일일 업무일지"], ["/list?boardId=5", "주간 업무일지"], ["/list?boardId=6", "월간 업무일지"]] },
+  { key: "work", label: "업무일지", links: [["/weeklyWrite", "주간 업무일지 작성"], ["/monthlyWrite", "월간 업무일지 작성"], ["/list?boardId=4", "일일 업무일지"], ["/list?boardId=5", "주간 업무일지"], ["/list?boardId=6", "월간 업무일지"]] },
   { key: "handover", label: "인수인계", links: [["/handoverWrite", "인수인계 작성"], ["/handoverList", "인수인계 목록"]] },
   { key: "etc", label: "커뮤니티", links: [["/list?boardId=1", "공지사항"], ["/list?boardId=2", "자유게시판"], ["/list?boardId=3", "질문과 답변"]] },
 ];
@@ -14,6 +14,11 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-[#fdfcf9] text-[#20304a]">
       <MainHeader />
+      <nav aria-label="모바일 주요 기능" className="flex gap-2 overflow-x-auto border-b border-[#eadfd7] bg-[#fffaf6] px-4 py-3 lg:hidden">
+        {[["/write", "오늘 기록"], ["/list?boardId=4", "기록함"], ["/weeklyWrite", "주간 보고"], ["/monthlyWrite", "월간 보고"], ["/handoverList", "인수인계"]].map(([to, label]) => (
+          <NavLink key={to} to={to} className={({ isActive }) => `shrink-0 rounded-full border px-4 py-2 text-xs font-bold no-underline ${isActive ? "border-[#d95d3b] bg-[#fff0e9] text-[#c84f31]" : "border-[#eadfd7] bg-white text-[#596274]"}`}>{label}</NavLink>
+        ))}
+      </nav>
       <div className="mx-auto flex max-w-[1600px]">
         <aside className="hidden w-64 shrink-0 border-r border-[#eadfd7] bg-[#fffaf6] px-4 py-6 lg:block">
           <p className="mb-5 px-3 text-xs font-bold tracking-[0.18em] text-[#ad765f]">WORKSPACE</p>

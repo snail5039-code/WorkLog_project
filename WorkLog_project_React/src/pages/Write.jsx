@@ -27,7 +27,6 @@ const BOARD_OPTIONS = [
 ];
 
 const TEMPLATE_OPTIONS = [
-  { value: "TPL1", label: "템플릿1 - 주간 업무일지" },
   { value: "TPL3", label: "템플릿3 - 일일 보고(간단)" },
   { value: "TPL4", label: "템플릿4 - 부서/작성자/계획형" },
   { value: "TPL5", label: "템플릿5 - 업무 리스트형" },
@@ -168,7 +167,7 @@ function Write() {
     // 값이 없으면 빈 문자열로 보낸다. undefined 를 그대로 넣으면 FormData 가
     // 문자열 "undefined" 로 바꿔서, 보조내용을 안 쓴 글의 DB 에 그 글자가 들어갔다.
     formData.append("sideContent", values.sideContent ?? "");
-    formData.append("templateId", values.templateId || "TPL1");
+    formData.append("templateId", values.templateId || "TPL3");
 
     if (values.files && values.files.length > 0) {
       values.files.forEach((fileObj) => {
@@ -287,7 +286,7 @@ function Write() {
               </span>
             }
             name="templateId"
-            initialValue="TPL1"
+            initialValue="TPL3"
             rules={[
               { required: true, message: "사용할 양식을 선택해 주세요." },
             ]}

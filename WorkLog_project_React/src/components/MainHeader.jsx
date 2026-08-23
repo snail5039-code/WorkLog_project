@@ -2,8 +2,9 @@ import React, { useContext } from "react";
 import { Link, NavLink } from "react-router-dom";
 import LogoutButton from "../pages/Logout";
 import { AuthContext } from "../context/AuthContext";
+import { HomeLogo } from "./home/HomeBrand";
 
-const navItems = [["/", "홈"], ["/about", "WorkLog란?"], ["/guide", "이용 방법"], ["/write", "직접 사용하기"], ["/coming", "부가 기능"], ["/customerCenter", "고객센터"]];
+const navItems = [["/", "홈"], ["/write", "업무 기록"], ["/weeklyWrite", "주간 보고"], ["/monthlyWrite", "월간 보고"], ["/handoverList", "인수인계"], ["/list?boardId=4", "기록함"]];
 
 function MainHeader() {
   const { isLoginedId } = useContext(AuthContext);
@@ -12,7 +13,7 @@ function MainHeader() {
   return (
     <>{sessionStorage.getItem("worklog:developer-mode") === "true" && <div className="bg-[#24334a] px-4 py-2 text-center text-xs font-semibold text-white">개발자 모드 · 테스트 회원 데이터 사용 중</div>}<header className="sticky top-0 z-50 border-b border-[#eadfd7] bg-[#fdfcf9]/95 backdrop-blur">
       <div className="mx-auto flex min-h-[68px] max-w-[1600px] items-center gap-5 px-4 md:px-7">
-        <Link to="/" className="flex shrink-0 items-center gap-2 text-[#d95d3b]"><span aria-hidden="true" className="text-xl">❧</span><span className="font-serif text-2xl font-bold tracking-tight">WorkLog</span></Link>
+        <div className="shrink-0"><HomeLogo /></div>
         <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex">
           {navItems.map(([to, label]) => <NavLink key={to} to={to} className={menuClass}>{label}</NavLink>)}
         </nav>
