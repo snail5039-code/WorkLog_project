@@ -161,7 +161,17 @@ public class WorkLogController {
 
 	@PostMapping("/usr/work/workLog") // MultipartFile 이거는 스프링부트 내장이라서 바로 사용 가능함, 리액트에서 multiple를 받아온거!
 	public String writeWorkLog(@RequestParam int boardId, String title, String mainContent, String sideContent,
-			String templateId, List<MultipartFile> files, HttpSession session) {
+			String templateId, List<MultipartFile> files,
+			@RequestParam(required = false) Integer projectId,
+			@RequestParam(required = false) String workStatus,
+			@RequestParam(required = false) String priority,
+			@RequestParam(required = false) String startDate,
+			@RequestParam(required = false) String dueDate,
+			@RequestParam(required = false) String blocker,
+			@RequestParam(required = false) String nextAction,
+			@RequestParam(required = false) Integer previousWorkLogId,
+			@RequestParam(required = false) List<Integer> collaboratorMemberIds,
+			HttpSession session) {
 		// 로그인 확인은 AI 호출보다 먼저 한다. 예전에는 이 검사가 AI 호출 뒤에 있어서,
 		// 비로그인 요청도 매번 LLM 추론을 돌린 뒤에야 언박싱 NPE 로 500 이 났다.
 		Integer memberIdObj = (Integer) session.getAttribute("logindeMemberId");
@@ -174,6 +184,23 @@ public class WorkLogController {
 		// TPL1 로 되돌리므로, 그 안쪽에서 거부해도 사용자에게는 전달되지 않는다.
 		if (!this.templateMetaService.isSupported(templateId)) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지원하지 않는 템플릿입니다: " + templateId);
+		}
+
+		WorkLog workLogData = new WorkLog();
+		workLogData.setTitle(title);
+		workLogData.setMainContent(mainContent);
+		workLogData.setSideContent(sideContent);
+		if (boardId == 4) {
+			workLogData.setProjectId(projectId);
+			workLogData.setWorkStatus(normalizeCode(workStatus));
+			workLogData.setPriority(normalizeCode(priority));
+			workLogData.setStartDate(blankToNull(startDate));
+			workLogData.setDueDate(blankToNull(dueDate));
+			workLogData.setBlocker(blocker);
+			workLogData.setNextAction(nextAction);
+			workLogData.setPreviousWorkLogId(previousWorkLogId);
+			workLogData.setCollaboratorMemberIds(collaboratorMemberIds);
+			validateStructuredFields(workLogData, memberIdObj, null);
 		}
 
 		// 여기는 ai한테 입력된 값 넘기는 곳!
@@ -199,11 +226,6 @@ public class WorkLogController {
 			}
 		}
 		// MultipartFile 이거는 따로 테이블 만들어서 보관해야됌!
-		WorkLog workLogData = new WorkLog();
-		workLogData.setTitle(title);
-		workLogData.setMainContent(mainContent);
-		workLogData.setSideContent(sideContent);
-
 		workLogData.setTemplateId(effectiveTemplateId);
 
 		// ai가 생성한 최종 보고서 담기
@@ -545,9 +567,33 @@ public class WorkLogController {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("본인이 작성한 글만 수정할 수 있습니다.");
 		}
 
+		if (workLog.getBoardId() == 4) {
+			modifyData.setWorkStatus(normalizeCode(modifyData.getWorkStatus()));
+			modifyData.setPriority(normalizeCode(modifyData.getPriority()));
+			modifyData.setStartDate(blankToNull(modifyData.getStartDate()));
+			modifyData.setDueDate(blankToNull(modifyData.getDueDate()));
+			validateStructuredFields(modifyData, memberId, id);
+		}
+
 		// DAO 의 where 절에도 memberId 를 걸어둔다. 위 검사와 중복이지만,
 		// 앞으로 호출 경로가 늘어도 남의 글이 바뀌는 일은 없게 한다.
 		return ResponseEntity.ok(this.workLogService.doModify(id, memberId, modifyData));
+	}
+
+	private void validateStructuredFields(WorkLog data, int memberId, Integer currentWorkLogId) {
+		try {
+			workLogService.validateStructuredFields(data, memberId, currentWorkLogId);
+		} catch (IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+		}
+	}
+
+	private String normalizeCode(String value) {
+		return value == null || value.isBlank() ? null : value.trim().toUpperCase();
+	}
+
+	private String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.trim();
 	}
 
 	@DeleteMapping("/usr/work/{id}")

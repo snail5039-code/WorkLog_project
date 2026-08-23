@@ -2,13 +2,18 @@ package com.example.demo.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.dao.WorkLogDao;
+import com.example.demo.dao.WorkLogCollaboratorDao;
+import com.example.demo.dao.MemberDao;
+import com.example.demo.dao.ProjectDao;
 import com.example.demo.dto.FileAttach;
 import com.example.demo.dto.TemplateUsageDto;
 import com.example.demo.dto.WorkLog;
@@ -19,12 +24,19 @@ public class WorkLogService {
 	private WorkLogDao workLogDao;
 	private FileAttachService fileAttachService;
 	private WorkReplyService workReplyService;
+	private WorkLogCollaboratorDao workLogCollaboratorDao;
+	private ProjectDao projectDao;
+	private MemberDao memberDao;
 	// 의존성 주입
 	public WorkLogService(WorkLogDao workLogDao, FileAttachService fileAttachService,
-			WorkReplyService workReplyService) {
+			WorkReplyService workReplyService, WorkLogCollaboratorDao workLogCollaboratorDao,
+			ProjectDao projectDao, MemberDao memberDao) {
 		this.workLogDao = workLogDao;
 		this.fileAttachService = fileAttachService;
 		this.workReplyService = workReplyService;
+		this.workLogCollaboratorDao = workLogCollaboratorDao;
+		this.projectDao = projectDao;
+		this.memberDao = memberDao;
 	}
 	
 	/** 글을 넣고 새로 만들어진 id 를 돌려준다. */
@@ -52,6 +64,7 @@ public class WorkLogService {
 				}
 			}
 		}
+		replaceCollaborators(workLogId, workLogData.getCollaboratorMemberIds());
 
 		return workLogId;
 	}
@@ -70,13 +83,80 @@ public class WorkLogService {
 	    if (workLog != null) {
 	        List<FileAttach> fileAttaches = fileAttachService.getFilesByWorkLogId(id);
 	        workLog.setFileAttaches(fileAttaches);  // 그래서 요거 worklog에 만들어줬음 리스트로 받을 수 있게!
+	        workLog.setCollaboratorMemberIds(workLogCollaboratorDao.findMemberIdsByWorkLogId(id));
 	    }
 	    
 	    return workLog;
 	}
 
+	@Transactional
 	public int doModify(int id, int memberId, WorkLog modifyData) {
-		return this.workLogDao.doModify(id, memberId, modifyData);
+		int updated = this.workLogDao.doModify(id, memberId, modifyData);
+		if (updated > 0 && modifyData.getCollaboratorMemberIds() != null) {
+			replaceCollaborators(id, modifyData.getCollaboratorMemberIds());
+		}
+		return updated;
+	}
+
+	public boolean isOwnedDailyWorkLog(int workLogId, int memberId) {
+		return workLogDao.countOwnedDailyWorkLog(workLogId, memberId) > 0;
+	}
+
+	public void validateStructuredFields(WorkLog data, int memberId, Integer currentWorkLogId) {
+		if (data.getProjectId() != null && projectDao.countOwnedActiveProject(data.getProjectId(), memberId) == 0) {
+			throw new IllegalArgumentException("본인이 소유한 활성 프로젝트만 연결할 수 있습니다.");
+		}
+
+		Set<String> statuses = Set.of("PLANNED", "IN_PROGRESS", "ON_HOLD", "COMPLETED");
+		if (data.getWorkStatus() != null && !statuses.contains(data.getWorkStatus())) {
+			throw new IllegalArgumentException("지원하지 않는 업무 상태입니다.");
+		}
+
+		Set<String> priorities = Set.of("HIGH", "NORMAL", "LOW");
+		if (data.getPriority() != null && !priorities.contains(data.getPriority())) {
+			throw new IllegalArgumentException("지원하지 않는 우선순위입니다.");
+		}
+
+		LocalDate start = parseDate(data.getStartDate(), "시작일");
+		LocalDate due = parseDate(data.getDueDate(), "마감일");
+		if (start != null && due != null && due.isBefore(start)) {
+			throw new IllegalArgumentException("마감일은 시작일보다 빠를 수 없습니다.");
+		}
+
+		if (data.getPreviousWorkLogId() != null) {
+			if (data.getPreviousWorkLogId().equals(currentWorkLogId)) {
+				throw new IllegalArgumentException("자기 자신을 이전 기록으로 연결할 수 없습니다.");
+			}
+			if (!isOwnedDailyWorkLog(data.getPreviousWorkLogId(), memberId)) {
+				throw new IllegalArgumentException("본인의 일일 업무일지만 이전 기록으로 연결할 수 있습니다.");
+			}
+		}
+
+		if (data.getCollaboratorMemberIds() != null) {
+			for (Integer collaboratorId : data.getCollaboratorMemberIds().stream().distinct().toList()) {
+				if (collaboratorId == null || collaboratorId == memberId) {
+					throw new IllegalArgumentException("작성자 본인은 협업자로 중복 지정할 수 없습니다.");
+				}
+				if (memberDao.countById(collaboratorId) == 0) {
+					throw new IllegalArgumentException("존재하지 않는 협업자가 포함되어 있습니다.");
+				}
+			}
+		}
+	}
+
+	private LocalDate parseDate(String value, String label) {
+		if (value == null || value.isBlank()) return null;
+		try {
+			return LocalDate.parse(value);
+		} catch (DateTimeParseException e) {
+			throw new IllegalArgumentException(label + "은 YYYY-MM-DD 형식이어야 합니다.");
+		}
+	}
+
+	private void replaceCollaborators(int workLogId, List<Integer> memberIds) {
+		if (memberIds == null) return;
+		workLogCollaboratorDao.deleteByWorkLogId(workLogId);
+		memberIds.stream().distinct().forEach(memberId -> workLogCollaboratorDao.insert(workLogId, memberId));
 	}
 
 	public int getMyWorkLogsCount(int memberId) {

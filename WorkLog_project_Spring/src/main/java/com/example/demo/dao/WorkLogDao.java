@@ -29,6 +29,14 @@ public interface WorkLogDao {
 					, memberId = #{memberId} 
 					, templateId = #{workLogData.templateId}              
 					, boardId = #{boardId}
+					, projectId = #{workLogData.projectId}
+					, workStatus = coalesce(#{workLogData.workStatus}, 'PLANNED')
+					, priority = coalesce(#{workLogData.priority}, 'NORMAL')
+					, startDate = #{workLogData.startDate}
+					, dueDate = #{workLogData.dueDate}
+					, blocker = #{workLogData.blocker}
+					, nextAction = #{workLogData.nextAction}
+					, previousWorkLogId = #{workLogData.previousWorkLogId}
 			""")
 	// 새로 만들어진 id 는 insert 를 실행한 그 자리에서 받아온다.
 	// 예전에는 별도 쿼리(`select last_insert_id()`)로 읽었는데, 이 값은 커넥션 단위라
@@ -56,10 +64,13 @@ public interface WorkLogDao {
 	public List<WorkLog> showListByBoardId(Integer boardId);
 
 	@Select("""
-			select w.*, m.loginId as writerName
+			select w.*, m.loginId as writerName, p.name as projectName,
+			       previous.title as previousWorkLogTitle
 				from workLog as w
 				inner join member as m
 				on w.memberId = m.id 
+				left join project as p on w.projectId = p.id
+				left join workLog as previous on w.previousWorkLogId = previous.id
 				where w.id = #{id}
 			""")
 	public WorkLog showDetail(int id);
@@ -70,10 +81,27 @@ public interface WorkLogDao {
 					, title = #{modifyData.title}
 					, mainContent = #{modifyData.mainContent}
 					, sideContent = #{modifyData.sideContent}
+					, projectId = coalesce(#{modifyData.projectId}, projectId)
+					, workStatus = coalesce(#{modifyData.workStatus}, workStatus)
+					, priority = coalesce(#{modifyData.priority}, priority)
+					, startDate = coalesce(#{modifyData.startDate}, startDate)
+					, dueDate = coalesce(#{modifyData.dueDate}, dueDate)
+					, blocker = coalesce(#{modifyData.blocker}, blocker)
+					, nextAction = coalesce(#{modifyData.nextAction}, nextAction)
+					, previousWorkLogId = coalesce(#{modifyData.previousWorkLogId}, previousWorkLogId)
 					where id = #{id} and memberId = #{memberId}
 			""")
 	public int doModify(@Param("id") int id, @Param("memberId") int memberId,
 			@Param("modifyData") WorkLog modifyData);
+
+	@Select("""
+			select count(*)
+			  from workLog
+			 where id = #{workLogId}
+			   and memberId = #{memberId}
+			   and boardId = 4
+			""")
+	int countOwnedDailyWorkLog(int workLogId, int memberId);
 
 	@Select("""
 			select count(*)
