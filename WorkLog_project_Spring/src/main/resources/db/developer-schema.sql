@@ -17,11 +17,106 @@ CREATE TABLE IF NOT EXISTS member (
   UNIQUE KEY uk_member_email (email)
 );
 
+CREATE TABLE IF NOT EXISTS workspace (
+  id INT NOT NULL AUTO_INCREMENT,
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updateDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  name VARCHAR(150) NOT NULL,
+  slug VARCHAR(100) NOT NULL,
+  ownerMemberId INT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_workspace_slug (slug),
+  KEY idx_workspace_owner_status (ownerMemberId, status),
+  CONSTRAINT fk_workspace_owner FOREIGN KEY (ownerMemberId) REFERENCES member (id)
+);
+
+CREATE TABLE IF NOT EXISTS workspaceMember (
+  workspaceId INT NOT NULL,
+  memberId INT NOT NULL,
+  role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  invitedByMemberId INT,
+  joinedAt DATETIME,
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updateDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (workspaceId, memberId),
+  KEY idx_workspace_member_lookup (memberId, status, workspaceId),
+  CONSTRAINT fk_workspace_member_workspace FOREIGN KEY (workspaceId) REFERENCES workspace (id) ON DELETE CASCADE,
+  CONSTRAINT fk_workspace_member_member FOREIGN KEY (memberId) REFERENCES member (id) ON DELETE CASCADE,
+  CONSTRAINT fk_workspace_member_inviter FOREIGN KEY (invitedByMemberId) REFERENCES member (id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS team (
+  id INT NOT NULL AUTO_INCREMENT,
+  workspaceId INT NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  description TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updateDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_team_workspace_name (workspaceId, name),
+  KEY idx_team_workspace_status (workspaceId, status),
+  CONSTRAINT fk_team_workspace FOREIGN KEY (workspaceId) REFERENCES workspace (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS teamMember (
+  teamId INT NOT NULL,
+  memberId INT NOT NULL,
+  role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (teamId, memberId),
+  KEY idx_team_member_lookup (memberId, teamId),
+  CONSTRAINT fk_team_member_team FOREIGN KEY (teamId) REFERENCES team (id) ON DELETE CASCADE,
+  CONSTRAINT fk_team_member_member FOREIGN KEY (memberId) REFERENCES member (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS workspaceInvitation (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  workspaceId INT NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+  tokenHash CHAR(64) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  invitedByMemberId INT NOT NULL,
+  acceptedMemberId INT,
+  expiresAt DATETIME NOT NULL,
+  acceptedAt DATETIME,
+  cancelledAt DATETIME,
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_workspace_invitation_token (tokenHash),
+  KEY idx_workspace_invitation_lookup (workspaceId, email, status, expiresAt),
+  CONSTRAINT fk_workspace_invitation_workspace FOREIGN KEY (workspaceId) REFERENCES workspace (id) ON DELETE CASCADE,
+  CONSTRAINT fk_workspace_invitation_inviter FOREIGN KEY (invitedByMemberId) REFERENCES member (id),
+  CONSTRAINT fk_workspace_invitation_acceptor FOREIGN KEY (acceptedMemberId) REFERENCES member (id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS workspaceAuditLog (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  workspaceId INT NOT NULL,
+  actorMemberId INT,
+  action VARCHAR(80) NOT NULL,
+  resourceType VARCHAR(50) NOT NULL,
+  resourceId VARCHAR(100),
+  detailsJson LONGTEXT,
+  regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_workspace_audit_timeline (workspaceId, regDate, id),
+  KEY idx_workspace_audit_actor (actorMemberId, regDate),
+  CONSTRAINT fk_workspace_audit_workspace FOREIGN KEY (workspaceId) REFERENCES workspace (id) ON DELETE CASCADE,
+  CONSTRAINT fk_workspace_audit_actor FOREIGN KEY (actorMemberId) REFERENCES member (id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS project (
   id INT NOT NULL AUTO_INCREMENT,
   regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updateDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   ownerMemberId INT NOT NULL,
+  workspaceId INT,
+  teamId INT,
+  visibility VARCHAR(20) NOT NULL DEFAULT 'PRIVATE',
   name VARCHAR(150) NOT NULL,
   description TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
@@ -32,7 +127,10 @@ CREATE TABLE IF NOT EXISTS project (
   PRIMARY KEY (id),
   UNIQUE KEY uk_project_owner_name (ownerMemberId, name),
   KEY idx_project_owner_status_update (ownerMemberId, status, updateDate),
-  CONSTRAINT fk_project_owner FOREIGN KEY (ownerMemberId) REFERENCES member (id)
+  KEY idx_project_workspace_visibility (workspaceId, teamId, visibility, status),
+  CONSTRAINT fk_project_owner FOREIGN KEY (ownerMemberId) REFERENCES member (id),
+  CONSTRAINT fk_project_workspace FOREIGN KEY (workspaceId) REFERENCES workspace (id) ON DELETE SET NULL,
+  CONSTRAINT fk_project_team FOREIGN KEY (teamId) REFERENCES team (id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS workLog (
@@ -46,6 +144,9 @@ CREATE TABLE IF NOT EXISTS workLog (
   templateId VARCHAR(100),
   memberId INT NOT NULL,
   boardId INT NOT NULL DEFAULT 4,
+  workspaceId INT,
+  teamId INT,
+  visibility VARCHAR(20) NOT NULL DEFAULT 'PRIVATE',
   projectId INT,
   workStatus VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
   priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
@@ -58,9 +159,12 @@ CREATE TABLE IF NOT EXISTS workLog (
   KEY idx_worklog_member_board_date (memberId, boardId, regDate),
   KEY idx_worklog_project_status_date (projectId, workStatus, regDate),
   KEY idx_worklog_previous (previousWorkLogId),
+  KEY idx_worklog_workspace_visibility (workspaceId, teamId, visibility, regDate),
   CONSTRAINT fk_worklog_member FOREIGN KEY (memberId) REFERENCES member (id),
   CONSTRAINT fk_worklog_project FOREIGN KEY (projectId) REFERENCES project (id) ON DELETE SET NULL,
-  CONSTRAINT fk_worklog_previous FOREIGN KEY (previousWorkLogId) REFERENCES workLog (id) ON DELETE SET NULL
+  CONSTRAINT fk_worklog_previous FOREIGN KEY (previousWorkLogId) REFERENCES workLog (id) ON DELETE SET NULL,
+  CONSTRAINT fk_worklog_workspace FOREIGN KEY (workspaceId) REFERENCES workspace (id) ON DELETE SET NULL,
+  CONSTRAINT fk_worklog_team FOREIGN KEY (teamId) REFERENCES team (id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS workLogCollaborator (
@@ -105,9 +209,12 @@ CREATE TABLE IF NOT EXISTS handoverLog (
   regDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updateDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   memberId INT NOT NULL,
+  workspaceId INT,
+  teamId INT,
   writerName VARCHAR(100),
   title VARCHAR(255) NOT NULL,
   toName VARCHAR(100),
+  toMemberId INT,
   toJob VARCHAR(100),
   fromJob VARCHAR(100),
   fromDate DATE,
@@ -121,8 +228,12 @@ CREATE TABLE IF NOT EXISTS handoverLog (
   PRIMARY KEY (id),
   KEY idx_handover_member (memberId),
   KEY idx_handover_status_update (status, updateDate),
+  KEY idx_handover_workspace_status (workspaceId, teamId, status, updateDate),
   CONSTRAINT fk_handover_member FOREIGN KEY (memberId) REFERENCES member (id),
-  CONSTRAINT fk_handover_confirmer FOREIGN KEY (confirmedByMemberId) REFERENCES member (id) ON DELETE SET NULL
+  CONSTRAINT fk_handover_confirmer FOREIGN KEY (confirmedByMemberId) REFERENCES member (id) ON DELETE SET NULL,
+  CONSTRAINT fk_handover_workspace FOREIGN KEY (workspaceId) REFERENCES workspace (id) ON DELETE SET NULL,
+  CONSTRAINT fk_handover_team FOREIGN KEY (teamId) REFERENCES team (id) ON DELETE SET NULL,
+  CONSTRAINT fk_handover_recipient FOREIGN KEY (toMemberId) REFERENCES member (id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS pageContent (
