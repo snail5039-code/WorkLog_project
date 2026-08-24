@@ -1197,8 +1197,7 @@ public class WorkLogController {
 
 		String worklogListText = sb.toString();
 
-		// 👉 일단 주간이랑 같은 AI 메서드 재사용 (나중에 필요하면 generateMonthlySummary 따로 파도 됨)
-		String aiSummary = workChatAIService.generateWeeklySummary(worklogListText);
+		String aiSummary = workChatAIService.generateMonthlySummary(worklogListText);
 		if (aiSummary == null || aiSummary.isBlank()) {
 			aiSummary = worklogListText;
 		}
@@ -1262,8 +1261,7 @@ public class WorkLogController {
 
 		String worklogListText = sb.toString();
 
-		// 👉 여기서도 일단 주간용 요약 메서드 재사용
-		String aiSummary = workChatAIService.generateWeeklySummary(worklogListText);
+		String aiSummary = workChatAIService.generateMonthlySummary(worklogListText);
 		if (aiSummary == null || aiSummary.isBlank()) {
 			aiSummary = worklogListText;
 		}
