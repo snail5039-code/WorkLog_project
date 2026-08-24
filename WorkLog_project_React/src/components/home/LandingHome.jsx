@@ -10,7 +10,7 @@ const features = [
 
 const previewCards = [
   { title: "주간 팀 미팅", time: "09:00", position: "left-[8%] top-0", tone: "border-[#efc9bb] bg-[#fffaf7]" },
-  { title: "프로젝트 집중", time: "13:00", position: "left-[42%] top-20", tone: "border-[#bed0ed] bg-[#f9fbff]" },
+  { title: "프로젝트 집중", time: "13:00", position: "left-[42%] top-0", tone: "border-[#bed0ed] bg-[#f9fbff]" },
   { title: "하루 마무리", time: "17:30", position: "right-[7%] top-2", tone: "border-[#efc9bb] bg-[#fffaf7]" },
 ];
 
@@ -45,13 +45,13 @@ function LandingHome() {
           </div>
 
           <div className="relative mx-auto mt-20 hidden h-[300px] max-w-[980px] md:block" aria-label="WorkLog 업무 흐름 미리보기">
-            <svg className="absolute left-0 top-[120px] h-[100px] w-full" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 58 C120 70,170 35,300 44 S510 82,650 55 S835 35,1000 61" fill="none" stroke="#334f73" strokeWidth="1.5" /></svg>
+            <svg className="absolute left-0 top-[145px] h-[100px] w-full" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 58 C120 70,170 35,300 44 S510 82,650 55 S835 35,1000 61" fill="none" stroke="#334f73" strokeWidth="1.5" /></svg>
             {previewCards.map((card) => (
               <article key={card.title} className={`absolute z-10 w-[190px] rounded-xl border p-4 text-left shadow-[0_14px_35px_rgba(65,45,34,0.06)] ${card.position} ${card.tone}`}>
                 <span className="text-[10px] text-[#918b85]">{card.time}</span><h2 className="mt-2 text-sm font-bold">{card.title}</h2><p className="mt-2 text-[11px] leading-5 text-[#6f7072]">업무 내용과 다음 행동을 간단하게 기록합니다.</p>
               </article>
             ))}
-            <div className="absolute left-1/2 top-[127px] z-20 -translate-x-1/2 text-center"><span className="block text-[10px] font-bold text-[#d95d3b]">지금 여기</span><span className="mx-auto mt-1 block h-4 w-4 rounded-full border-[3px] border-[#f3c5b6] bg-[#d95d3b]" /></div>
+            <div className="absolute left-1/2 top-[202px] z-20 -translate-x-1/2 text-center"><span className="block text-[10px] font-bold text-[#d95d3b]">지금 여기</span><span className="mx-auto mt-1 block h-4 w-4 rounded-full border-[3px] border-[#f3c5b6] bg-[#d95d3b]" /></div>
           </div>
         </section>
 
