@@ -499,13 +499,55 @@ public class WorkLogController {
 
 		int offset = (page - 1) * size;
 
-		List<HandoverLog> items = this.handoverLogService.getMyHandoverLog(memberId, offset, size);
-		int totalCount = this.handoverLogService.getMyHandoverLogCount(memberId);
+		Member member = this.memberService.getMemberById(memberId);
+		List<HandoverLog> items = this.handoverLogService.getMyHandoverLog(memberId, member.getName(), offset, size);
+		items.forEach(item -> {
+			item.setCanDeliver(item.getMemberId() == memberId && "DRAFT".equals(item.getStatus()));
+			item.setCanConfirm(member.getName().equals(item.getToName()) && "DELIVERED".equals(item.getStatus()));
+			item.setCanComplete(item.getMemberId() == memberId && "CONFIRMED".equals(item.getStatus()));
+		});
+		int totalCount = this.handoverLogService.getMyHandoverLogCount(memberId, member.getName());
 
 		Map<String, Object> result = new HashMap<>();
 		result.put("items", items);
 		result.put("totalCount", totalCount);
 		return result;
+	}
+
+	@PostMapping("/handover/{id}/deliver")
+	public Map<String, Object> deliverHandover(@PathVariable int id, HttpSession session) {
+		int memberId = requireMemberId(session);
+		if (!handoverLogService.markDelivered(id, memberId)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "작성 중인 본인의 인수인계만 전달할 수 있습니다.");
+		}
+		return Map.of("success", true, "status", "DELIVERED");
+	}
+
+	@PostMapping("/handover/{id}/confirm")
+	public Map<String, Object> confirmHandover(@PathVariable int id, HttpSession session) {
+		int memberId = requireMemberId(session);
+		Member member = memberService.getMemberById(memberId);
+		if (!handoverLogService.markConfirmed(id, memberId, member.getName())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "전달된 인수인계의 지정된 인수자만 확인할 수 있습니다.");
+		}
+		return Map.of("success", true, "status", "CONFIRMED");
+	}
+
+	@PostMapping("/handover/{id}/complete")
+	public Map<String, Object> completeHandover(@PathVariable int id, HttpSession session) {
+		int memberId = requireMemberId(session);
+		if (!handoverLogService.markCompleted(id, memberId)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "확인된 본인의 인수인계만 완료할 수 있습니다.");
+		}
+		return Map.of("success", true, "status", "COMPLETED");
+	}
+
+	private int requireMemberId(HttpSession session) {
+		Integer memberId = (Integer) session.getAttribute("logindeMemberId");
+		if (memberId == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+		return memberId;
 	}
 
 	@GetMapping("/usr/work/detail/{id}")

@@ -113,9 +113,16 @@ CREATE TABLE IF NOT EXISTS handoverLog (
   fromDate DATE,
   toDate DATE,
   content LONGTEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+  deliveredAt DATETIME,
+  confirmedAt DATETIME,
+  confirmedByMemberId INT,
+  completedAt DATETIME,
   PRIMARY KEY (id),
   KEY idx_handover_member (memberId),
-  CONSTRAINT fk_handover_member FOREIGN KEY (memberId) REFERENCES member (id)
+  KEY idx_handover_status_update (status, updateDate),
+  CONSTRAINT fk_handover_member FOREIGN KEY (memberId) REFERENCES member (id),
+  CONSTRAINT fk_handover_confirmer FOREIGN KEY (confirmedByMemberId) REFERENCES member (id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS pageContent (
