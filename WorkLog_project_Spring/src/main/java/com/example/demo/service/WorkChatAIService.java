@@ -129,6 +129,24 @@ public class WorkChatAIService {
 		}
 	}
 
+	/** 사용자가 미리보기에서 편집한 요약이 문서 생성에 쓸 수 있는 JSON 객체인지 확인한다. */
+	public String validateEditedSummary(String summaryContent) {
+		if (summaryContent == null || summaryContent.isBlank()) {
+			return null;
+		}
+		try {
+			JsonNode root = objectMapper.readTree(summaryContent);
+			if (!root.isObject()) {
+				throw new IllegalArgumentException("AI 요약은 JSON 객체 형식이어야 합니다.");
+			}
+			return objectMapper.writeValueAsString(root);
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("AI 요약 JSON 형식이 올바르지 않습니다.");
+		}
+	}
+
 	public String generateHandoverSummary(String worklogListText) {
 		// 1) AI한테 역할 알려주는 시스템 프롬프트
 		String systemPrompt = """

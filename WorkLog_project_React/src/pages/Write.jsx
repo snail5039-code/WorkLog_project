@@ -12,7 +12,7 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { AuthContext } from "../context/AuthContext";
-import { TEMPLATE_MAIN_PLACEHOLDER } from "../config/templateSummaryConfig";
+import { FIELD_LABELS, FIELD_ORDER, TEMPLATE_MAIN_PLACEHOLDER } from "../config/templateSummaryConfig";
 import { API_BASE } from "../config/api";
 
 const LOGIN_REQUIRED_KEY = "login_required_message";
@@ -59,6 +59,8 @@ function Write() {
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [projectCreating, setProjectCreating] = useState(false);
+  const [aiSummaryPreview, setAiSummaryPreview] = useState("");
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   // Context에서 로그인 ID를 가져옵니다.
   const { isLoginedId, authLoaded } = useContext(AuthContext);
   // 메인 콘텐츠 TextArea에 접근하기 위한 Ref
@@ -129,6 +131,7 @@ function Write() {
   };
 
   const handleTemplateChange = (value) => {
+    setAiSummaryPreview("");
     // 지금 메인 내용에 뭐가 써져 있는지 확인
     const currentContent = form.getFieldValue("mainContent");
 
@@ -145,6 +148,45 @@ function Write() {
         templateId: value,
       });
     }
+  };
+
+  const generateAiPreview = async () => {
+    try {
+      const values = await form.validateFields(["title", "mainContent", "templateId"]);
+      setIsAiGenerating(true);
+      const response = await fetch(`${API_BASE}/api/usr/work/ai-preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: values.title,
+          mainContent: values.mainContent,
+          sideContent: form.getFieldValue("sideContent") || "",
+          templateId: values.templateId || "TPL3",
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || data.error || "AI 요약 생성에 실패했습니다.");
+      setAiSummaryPreview(JSON.stringify(JSON.parse(data.summaryContent), null, 2));
+      message.success("AI 초안을 만들었습니다. 확인 후 자유롭게 수정하세요.");
+    } catch (error) {
+      if (error?.errorFields) return;
+      message.error(error.message || "AI 요약 생성에 실패했습니다. 요약 없이도 저장할 수 있습니다.");
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const previewObject = (() => {
+    try {
+      return aiSummaryPreview ? JSON.parse(aiSummaryPreview) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const updateAiSummaryField = (key, value) => {
+    setAiSummaryPreview(JSON.stringify({ ...previewObject, [key]: value }, null, 2));
   };
 
   if (!authLoaded) {
@@ -225,6 +267,7 @@ function Write() {
         const value = values[key];
         if (value !== undefined && value !== null && value !== "") formData.append(key, value);
       });
+      if (aiSummaryPreview.trim()) formData.append("summaryContent", aiSummaryPreview.trim());
     }
 
     if (values.files && values.files.length > 0) {
@@ -248,7 +291,7 @@ function Write() {
           openModal("템플릿이 등록되었습니다.");
         } else {
           // 나머지 게시판(일일업무 등)
-          openModal("등록이 완료되었습니다. (AI 요약 포함!)");
+          openModal(aiSummaryPreview.trim() ? "확인한 AI 요약과 함께 기록했습니다." : "업무 기록을 저장했습니다.");
         }
       } else {
         // 서버 응답 상태는 OK가 아니지만, 응답을 받은 경우 (4xx, 5xx)
@@ -273,6 +316,12 @@ function Write() {
         layout="vertical"
         className="space-y-4"
         onFinish={handleSubmit}
+        onValuesChange={(changedValues) => {
+          if (aiSummaryPreview && ["title", "mainContent", "sideContent", "templateId"].some((key) => key in changedValues)) {
+            setAiSummaryPreview("");
+            message.info("원문이 변경되어 기존 AI 초안을 제외했습니다. 필요하면 다시 만들어주세요.");
+          }
+        }}
         disabled={isSubmitLoading}
       >
         {/* ✅ 게시판 선택 */}
@@ -422,6 +471,41 @@ function Write() {
             </Form.Item>
           </div>
         )}
+
+		{isDailyBoard && (
+		  <section className="rounded-2xl border border-[#eadfd7] bg-[#fffaf6] p-4 md:p-5">
+			<div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+			  <div>
+				<p className="text-sm font-bold text-[#26344a]">AI 요약 초안</p>
+				<p className="mt-1 text-xs leading-5 text-[#7a746f]">원문은 그대로 두고 보고서용 초안만 만듭니다. 내용을 확인하고 수정한 경우에만 함께 저장됩니다.</p>
+			  </div>
+			  <Button type="default" onClick={generateAiPreview} loading={isAiGenerating} disabled={isSubmitLoading}>
+				{aiSummaryPreview ? "초안 다시 만들기" : "AI 초안 만들기"}
+			  </Button>
+			</div>
+			{previewObject ? (
+			  <div className="mt-4">
+				<div className="grid gap-3 md:grid-cols-2">
+				  {(FIELD_ORDER[form.getFieldValue("templateId") || "TPL3"] || Object.keys(previewObject)).filter((key) => key in previewObject).map((key) => (
+					<label key={key} className="block text-xs font-semibold text-[#596274]">
+					  {FIELD_LABELS[form.getFieldValue("templateId") || "TPL3"]?.[key] || key}
+					  <Input.TextArea
+						aria-label={`AI 요약 ${FIELD_LABELS[form.getFieldValue("templateId") || "TPL3"]?.[key] || key}`}
+						value={typeof previewObject[key] === "string" ? previewObject[key] : JSON.stringify(previewObject[key])}
+						onChange={(event) => updateAiSummaryField(key, event.target.value)}
+						autoSize={{ minRows: 2, maxRows: 6 }}
+						className="mt-1 text-sm leading-6"
+					  />
+					</label>
+				  ))}
+				</div>
+				<button type="button" onClick={() => setAiSummaryPreview("")} className="mt-2 text-xs font-semibold text-[#a06a55] hover:text-[#d95d3b]">요약 제외하기</button>
+			  </div>
+			) : (
+			  <p className="mt-4 rounded-xl border border-dashed border-[#e5d7ce] bg-white px-4 py-3 text-xs text-[#8a817b]">AI 초안을 만들지 않아도 업무 기록은 정상적으로 저장됩니다.</p>
+			)}
+		  </section>
+		)}
 
         <Form.Item className="mt-8">
           <Button

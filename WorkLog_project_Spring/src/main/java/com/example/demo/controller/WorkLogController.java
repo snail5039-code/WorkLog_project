@@ -162,6 +162,7 @@ public class WorkLogController {
 	@PostMapping("/usr/work/workLog") // MultipartFile 이거는 스프링부트 내장이라서 바로 사용 가능함, 리액트에서 multiple를 받아온거!
 	public String writeWorkLog(@RequestParam int boardId, String title, String mainContent, String sideContent,
 			String templateId, List<MultipartFile> files,
+			@RequestParam(required = false) String summaryContent,
 			@RequestParam(required = false) Integer projectId,
 			@RequestParam(required = false) String workStatus,
 			@RequestParam(required = false) String priority,
@@ -203,7 +204,8 @@ public class WorkLogController {
 			validateStructuredFields(workLogData, memberIdObj, null);
 		}
 
-		// 여기는 ai한테 입력된 값 넘기는 곳!
+		// AI 초안은 별도 미리보기 API에서 만든다. 사용자가 확인한 값만 저장하고,
+		// 미리보기를 건너뛰어도 원문 기록은 정상적으로 저장한다.
 		String finalAiReport = null;
 		String effectiveTemplateId = null;
 		// ai 처리를 위해 템플릿 파일, 내용을 준비
@@ -211,18 +213,11 @@ public class WorkLogController {
 			finalAiReport = "{}";
 			effectiveTemplateId = null; // 템플릿ID 안 씀
 		} else {
-			String combinedNewContent = "제목: " + title + "\n\n" + mainContent + "\n\n보조 내용: " + sideContent;
-
+			effectiveTemplateId = (templateId == null || templateId.isBlank()) ? "TPL1" : templateId;
 			try {
-
-				effectiveTemplateId = (templateId == null || templateId.isBlank()) ? "TPL1" : templateId;
-				finalAiReport = this.workChatAIService.generateFinalReport(effectiveTemplateId, combinedNewContent);
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.err.println("AI 보고서 생성 중 오류 발생, 원본 내용 저장:" + e.getMessage());
-				// DB에서 summaryContent NOT NULL 이라면 최소한 빈 JSON이라도 넣어주자
-				finalAiReport = "{}";
-				effectiveTemplateId = "TPL1";
+				finalAiReport = this.workChatAIService.validateEditedSummary(summaryContent);
+			} catch (IllegalArgumentException e) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
 			}
 		}
 		// MultipartFile 이거는 따로 테이블 만들어서 보관해야됌!
@@ -240,6 +235,38 @@ public class WorkLogController {
 		this.workLogService.writeWorkLogWithFiles(workLogData, memberIdObj, boardId, files);
 
 		return "데이터 입력 완료";
+	}
+
+	@PostMapping("/usr/work/ai-preview")
+	public Map<String, String> previewAiSummary(@RequestBody Map<String, String> request, HttpSession session) {
+		if (session.getAttribute("logindeMemberId") == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+		String templateId = request.get("templateId");
+		String title = request.get("title");
+		String mainContent = request.get("mainContent");
+		String sideContent = request.get("sideContent");
+		if (!this.templateMetaService.isSupported(templateId)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지원하지 않는 템플릿입니다: " + templateId);
+		}
+		if (mainContent == null || mainContent.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요약할 업무 내용을 입력해주세요.");
+		}
+		if (mainContent.length() > 30000) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "업무 내용은 30,000자 이하로 입력해주세요.");
+		}
+		String combinedContent = "제목: " + blankToEmpty(title) + "\n\n" + mainContent
+				+ "\n\n보조 내용: " + blankToEmpty(sideContent);
+		try {
+			return Map.of("summaryContent", this.workChatAIService.generateFinalReport(templateId, combinedContent));
+		} catch (Exception e) {
+			throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+					"AI 요약 생성에 실패했습니다. 원문은 요약 없이 저장할 수 있습니다.");
+		}
+	}
+
+	private String blankToEmpty(String value) {
+		return value == null ? "" : value;
 	}
 
 	@PostMapping("/usr/work/simplePost")
