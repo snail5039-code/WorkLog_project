@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './App.css';
 import { AuthProvider } from './context/AuthContext';  // 마찬가지로 여기도 해줘야 함
+import { WorkspaceProvider } from './context/WorkspaceContext';
 
 import Home from './pages/Home';
 import List from './pages/List';
@@ -23,6 +24,8 @@ import Guide from './pages/Guide';
 import Coming from './pages/Coming';
 import Preview from './pages/Preview';
 import DeveloperMode from './pages/DeveloperMode';
+import WorkspaceSettings from './pages/WorkspaceSettings';
+import WorkspaceInvitationAccept from './pages/WorkspaceInvitationAccept';
 import FloatingChatBot from "./components/FloatingChatBot";
 // ✅ 새로 만들 레이아웃
 import MainLayout from './layouts/MainLayout';
@@ -31,6 +34,7 @@ function App(){
   return (
     <BrowserRouter>
       <AuthProvider>
+        <WorkspaceProvider>
         <Routes>
 
           {/* ✅ 랜딩 페이지 (지금처럼 배경 큰 이미지 있는 메인) */}
@@ -57,11 +61,14 @@ function App(){
             <Route path="/guide" element={<Guide />} />
             <Route path="/coming" element={<Coming />} />
             <Route path="/mypage" element={<MyPage />} />
+            <Route path="/workspaceSettings" element={<WorkspaceSettings />} />
+            <Route path="/workspace-invitations/:token" element={<WorkspaceInvitationAccept />} />
             <Route path="/logout" element={<Logout />} />
             {/* 나중에 /daily, /weekly 이런 것도 여기 안에 추가하면 됨 */}
           </Route>
         </Routes>
         <FloatingChatBot />
+        </WorkspaceProvider>
       </AuthProvider>
     </BrowserRouter>
   );

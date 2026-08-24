@@ -3,6 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 import LogoutButton from "../pages/Logout";
 import { AuthContext } from "../context/AuthContext";
 import { HomeLogo } from "./home/HomeBrand";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const navItems = [["/", "홈"], ["/write", "업무 기록"], ["/weeklyWrite", "주간 보고"], ["/monthlyWrite", "월간 보고"], ["/handoverList", "인수인계"], ["/list?boardId=4", "기록함"]];
 
@@ -18,7 +19,7 @@ function MainHeader() {
           {navItems.map(([to, label]) => <NavLink key={to} to={to} className={menuClass}>{label}</NavLink>)}
         </nav>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {isLoggedIn ? <><Link to="/mypage" className="rounded-full px-3 py-2 text-sm font-semibold text-[#364154] hover:bg-[#fff0e9]">내 설정</Link><LogoutButton /></> : <Link to="/login" className="rounded-full border border-[#dfcfc4] bg-white px-4 py-2 text-sm font-bold text-[#26344a] hover:border-[#d95d3b] hover:text-[#c84f31]">로그인 / 회원가입</Link>}
+          {isLoggedIn ? <><WorkspaceSwitcher /><Link to="/mypage" className="hidden rounded-full px-3 py-2 text-sm font-semibold text-[#364154] hover:bg-[#fff0e9] sm:block">내 설정</Link><LogoutButton /></> : <Link to="/login" className="rounded-full border border-[#dfcfc4] bg-white px-4 py-2 text-sm font-bold text-[#26344a] hover:border-[#d95d3b] hover:text-[#c84f31]">로그인 / 회원가입</Link>}
         </div>
       </div>
     </header></>
