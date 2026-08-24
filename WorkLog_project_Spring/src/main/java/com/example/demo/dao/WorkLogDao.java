@@ -29,6 +29,9 @@ public interface WorkLogDao {
 					, memberId = #{memberId} 
 					, templateId = #{workLogData.templateId}              
 					, boardId = #{boardId}
+					, workspaceId = #{workLogData.workspaceId}
+					, teamId = #{workLogData.teamId}
+					, visibility = coalesce(#{workLogData.visibility}, 'PRIVATE')
 					, projectId = #{workLogData.projectId}
 					, workStatus = coalesce(#{workLogData.workStatus}, 'PLANNED')
 					, priority = coalesce(#{workLogData.priority}, 'NORMAL')
@@ -89,6 +92,9 @@ public interface WorkLogDao {
 					, blocker = coalesce(#{modifyData.blocker}, blocker)
 					, nextAction = coalesce(#{modifyData.nextAction}, nextAction)
 					, previousWorkLogId = coalesce(#{modifyData.previousWorkLogId}, previousWorkLogId)
+					, workspaceId = #{modifyData.workspaceId}
+					, teamId = #{modifyData.teamId}
+					, visibility = coalesce(#{modifyData.visibility}, visibility)
 					where id = #{id} and memberId = #{memberId}
 			""")
 	public int doModify(@Param("id") int id, @Param("memberId") int memberId,

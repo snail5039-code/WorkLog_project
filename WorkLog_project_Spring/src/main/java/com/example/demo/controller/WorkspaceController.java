@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.example.demo.dto.Workspace;
 import com.example.demo.dto.WorkspaceMember;
+import com.example.demo.dto.Team;
 import com.example.demo.service.WorkspaceService;
 
 import jakarta.servlet.http.HttpSession;
@@ -49,6 +50,25 @@ public class WorkspaceController {
     public List<WorkspaceMember> members(@PathVariable int workspaceId, HttpSession session) {
         try {
             return workspaceService.members(workspaceId, requireMemberId(session));
+        } catch (SecurityException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+        }
+    }
+
+    @GetMapping("/{workspaceId}/teams")
+    public List<Team> teams(@PathVariable int workspaceId, HttpSession session) {
+        try { return workspaceService.teams(workspaceId, requireMemberId(session)); }
+        catch (SecurityException e) { throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage()); }
+    }
+
+    @PostMapping("/{workspaceId}/teams")
+    public Team createTeam(@PathVariable int workspaceId, @RequestBody Map<String, String> request, HttpSession session) {
+        try {
+            return workspaceService.createTeam(workspaceId, requireMemberId(session), request.get("name"), request.get("description"));
+        } catch (DuplicateKeyException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "같은 이름의 팀이 이미 있습니다.");
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (SecurityException e) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         }

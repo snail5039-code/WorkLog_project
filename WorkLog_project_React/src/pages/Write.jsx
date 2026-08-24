@@ -12,6 +12,7 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { AuthContext } from "../context/AuthContext";
+import { WorkspaceContext } from "../context/WorkspaceContext";
 import { FIELD_LABELS, FIELD_ORDER, TEMPLATE_MAIN_PLACEHOLDER } from "../config/templateSummaryConfig";
 import { API_BASE } from "../config/api";
 
@@ -61,8 +62,11 @@ function Write() {
   const [projectCreating, setProjectCreating] = useState(false);
   const [aiSummaryPreview, setAiSummaryPreview] = useState("");
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [teams, setTeams] = useState([]);
   // Context에서 로그인 ID를 가져옵니다.
   const { isLoginedId, authLoaded } = useContext(AuthContext);
+  const { currentWorkspace } = useContext(WorkspaceContext);
+  const selectedVisibility = Form.useWatch("visibility", form) || "PRIVATE";
   // 메인 콘텐츠 TextArea에 접근하기 위한 Ref
   const mainContentRef = useRef(null);
 
@@ -102,6 +106,14 @@ function Write() {
   useEffect(() => {
     if (authLoaded && isLoginedId !== 0) loadStructuredOptions();
   }, [authLoaded, isLoginedId, loadStructuredOptions]);
+
+  useEffect(() => {
+    form.setFieldsValue({ workspaceId: currentWorkspace?.id || null, teamId: null, visibility: "PRIVATE" });
+    if (!currentWorkspace) { setTeams([]); return; }
+    fetch(`${API_BASE}/api/workspaces/${currentWorkspace.id}/teams`, { credentials: "include" })
+      .then((res) => res.ok ? res.json() : Promise.reject(new Error("팀 목록을 불러오지 못했습니다.")))
+      .then(setTeams).catch((error) => message.error(error.message));
+  }, [currentWorkspace, form]);
 
   const createProject = async () => {
     if (!newProjectName.trim()) {
@@ -267,6 +279,9 @@ function Write() {
         const value = values[key];
         if (value !== undefined && value !== null && value !== "") formData.append(key, value);
       });
+      formData.append("visibility", values.visibility || "PRIVATE");
+      if (currentWorkspace?.id) formData.append("workspaceId", currentWorkspace.id);
+      if (values.visibility === "TEAM" && values.teamId) formData.append("teamId", values.teamId);
       if (aiSummaryPreview.trim()) formData.append("summaryContent", aiSummaryPreview.trim());
     }
 
@@ -414,6 +429,16 @@ function Write() {
               <Button type="default" onClick={() => setProjectModalOpen(true)}>+ 프로젝트</Button>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
+              <div className="md:col-span-2 rounded-xl border border-[#eee2da] bg-white p-4">
+                <p className="text-sm font-bold text-[#26344a]">공개 범위</p>
+                <p className="mt-1 text-xs text-[#8a817b]">{currentWorkspace ? `${currentWorkspace.name}에서 이 기록을 볼 수 있는 사람을 정합니다.` : "개인 공간 기록은 나만 볼 수 있습니다."}</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Form.Item name="visibility" initialValue="PRIVATE" className="mb-0">
+                    <Select aria-label="공개 범위" options={currentWorkspace ? [{ value: "PRIVATE", label: "나만 보기" }, { value: "WORKSPACE", label: "워크스페이스 전체" }, { value: "TEAM", label: "선택한 팀" }] : [{ value: "PRIVATE", label: "나만 보기" }]} />
+                  </Form.Item>
+                  {selectedVisibility === "TEAM" && <Form.Item name="teamId" rules={[{ required: true, message: "팀을 선택해주세요." }]} className="mb-0"><Select aria-label="공개할 팀" placeholder="팀 선택" options={teams.map((team) => ({ value: team.id, label: team.name }))} /></Form.Item>}
+                </div>
+              </div>
               <Form.Item label="프로젝트" name="projectId" className="mb-0">
                 <Select allowClear placeholder="프로젝트 선택" options={projects.map((project) => ({ value: project.id, label: project.name }))} />
               </Form.Item>

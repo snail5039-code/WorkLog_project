@@ -172,6 +172,9 @@ public class WorkLogController {
 			@RequestParam(required = false) String nextAction,
 			@RequestParam(required = false) Integer previousWorkLogId,
 			@RequestParam(required = false) List<Integer> collaboratorMemberIds,
+			@RequestParam(required = false) Integer workspaceId,
+			@RequestParam(required = false) Integer teamId,
+			@RequestParam(required = false) String visibility,
 			HttpSession session) {
 		// 로그인 확인은 AI 호출보다 먼저 한다. 예전에는 이 검사가 AI 호출 뒤에 있어서,
 		// 비로그인 요청도 매번 LLM 추론을 돌린 뒤에야 언박싱 NPE 로 500 이 났다.
@@ -201,6 +204,9 @@ public class WorkLogController {
 			workLogData.setNextAction(nextAction);
 			workLogData.setPreviousWorkLogId(previousWorkLogId);
 			workLogData.setCollaboratorMemberIds(collaboratorMemberIds);
+			workLogData.setWorkspaceId(workspaceId);
+			workLogData.setTeamId(teamId);
+			workLogData.setVisibility(visibility);
 			validateStructuredFields(workLogData, memberIdObj, null);
 		}
 

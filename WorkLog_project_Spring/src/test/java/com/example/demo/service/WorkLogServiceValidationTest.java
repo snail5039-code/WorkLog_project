@@ -16,6 +16,7 @@ import com.example.demo.dao.MemberDao;
 import com.example.demo.dao.ProjectDao;
 import com.example.demo.dao.WorkLogCollaboratorDao;
 import com.example.demo.dao.WorkLogDao;
+import com.example.demo.dao.TeamDao;
 import com.example.demo.dto.WorkLog;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,13 +28,15 @@ class WorkLogServiceValidationTest {
     @Mock WorkLogCollaboratorDao collaboratorDao;
     @Mock ProjectDao projectDao;
     @Mock MemberDao memberDao;
+    @Mock TeamDao teamDao;
+    @Mock WorkspacePermissionService workspacePermissionService;
 
     private WorkLogService service;
 
     @BeforeEach
     void setUp() {
         service = new WorkLogService(workLogDao, fileAttachService, workReplyService,
-                collaboratorDao, projectDao, memberDao);
+                collaboratorDao, projectDao, memberDao, teamDao, workspacePermissionService);
     }
 
     @Test
@@ -52,6 +55,21 @@ class WorkLogServiceValidationTest {
         when(memberDao.countById(2)).thenReturn(1);
 
         assertDoesNotThrow(() -> service.validateStructuredFields(data, 1, null));
+    }
+
+    @Test
+    void rejectsTeamVisibilityWithoutTeam() {
+        WorkLog data = new WorkLog();
+        data.setWorkspaceId(3);
+        data.setVisibility("TEAM");
+        assertThrows(IllegalArgumentException.class, () -> service.validateStructuredFields(data, 1, null));
+    }
+
+    @Test
+    void rejectsWorkspaceVisibilityInPersonalSpace() {
+        WorkLog data = new WorkLog();
+        data.setVisibility("WORKSPACE");
+        assertThrows(IllegalArgumentException.class, () -> service.validateStructuredFields(data, 1, null));
     }
 
     @Test

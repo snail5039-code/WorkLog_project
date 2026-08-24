@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dao.WorkspaceDao;
+import com.example.demo.dao.TeamDao;
+import com.example.demo.dto.Team;
 import com.example.demo.dto.Member;
 import com.example.demo.dto.Workspace;
 import com.example.demo.dto.WorkspaceInvitation;
@@ -28,14 +30,37 @@ public class WorkspaceService {
     private final WorkspaceDao workspaceDao;
     private final WorkspacePermissionService permissionService;
     private final MemberService memberService;
+    private final TeamDao teamDao;
     private final SecureRandom secureRandom = new SecureRandom();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public WorkspaceService(WorkspaceDao workspaceDao, WorkspacePermissionService permissionService,
-            MemberService memberService) {
+            MemberService memberService, TeamDao teamDao) {
         this.workspaceDao = workspaceDao;
         this.permissionService = permissionService;
         this.memberService = memberService;
+        this.teamDao = teamDao;
+    }
+
+    public List<Team> teams(int workspaceId, int memberId) {
+        permissionService.requireActiveMember(workspaceId, memberId);
+        return teamDao.findMine(workspaceId, memberId);
+    }
+
+    @Transactional
+    public Team createTeam(int workspaceId, int memberId, String name, String description) {
+        permissionService.requireRole(workspaceId, memberId, "MANAGER");
+        Team team = new Team();
+        team.setWorkspaceId(workspaceId);
+        team.setName(requireText(name, "팀 이름", 150));
+        team.setDescription(description == null ? null : description.trim());
+        teamDao.insert(team);
+        teamDao.addLead(team.getId(), memberId);
+        team.setStatus("ACTIVE");
+        team.setMyRole("LEAD");
+        workspaceDao.insertAudit(workspaceId, memberId, "TEAM_CREATED", "TEAM", String.valueOf(team.getId()),
+                json(Map.of("name", team.getName())));
+        return team;
     }
 
     @Transactional

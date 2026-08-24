@@ -15,6 +15,8 @@ export default function WorkspaceSettings() {
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLinkWorkspaceId, setInviteLinkWorkspaceId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [teams, setTeams] = useState([]);
+  const [teamName, setTeamName] = useState("");
   const canManage = ["OWNER", "ADMIN"].includes(currentWorkspace?.myRole);
 
   const loadMembers = async () => {
@@ -27,11 +29,27 @@ export default function WorkspaceSettings() {
     setMembers(await response.json());
   };
 
+  const loadTeams = async () => {
+    if (!currentWorkspace) { setTeams([]); return; }
+    const response = await fetch(`${API_BASE}/api/workspaces/${currentWorkspace.id}/teams`, { credentials: "include" });
+    if (!response.ok) throw new Error("팀 목록을 불러오지 못했습니다.");
+    setTeams(await response.json());
+  };
+
   useEffect(() => {
     loadMembers().catch((error) => message.error(error.message));
+    loadTeams().catch((error) => message.error(error.message));
     // 선택한 워크스페이스가 바뀔 때만 다시 조회한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace?.id]);
+
+  const createTeam = async () => {
+    if (!teamName.trim() || !currentWorkspace) return message.warning("팀 이름을 입력해주세요.");
+    const response = await fetch(`${API_BASE}/api/workspaces/${currentWorkspace.id}/teams`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: teamName.trim() }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return message.error(data.message || "팀 생성에 실패했습니다.");
+    setTeamName(""); await loadTeams(); message.success("팀을 만들었습니다.");
+  };
 
   const createWorkspace = async () => {
     try {
@@ -106,6 +124,15 @@ export default function WorkspaceSettings() {
         </div>
         <p className="mt-2 text-xs text-[#8a817b]">주소는 영문 소문자·숫자·하이픈으로 3~50자입니다.</p>
       </section>
+
+      {currentWorkspace && (
+        <section className="rounded-[24px] border border-[#eadfd7] bg-white p-6 md:p-8">
+          <h2 className="font-serif text-2xl font-bold text-[#1f2e45]">팀</h2>
+          <p className="mt-1 text-xs text-[#8a817b]">팀 공개 기록은 소속 팀 구성원에게만 보입니다.</p>
+          {["OWNER", "ADMIN", "MANAGER"].includes(currentWorkspace.myRole) && <div className="mt-4 flex gap-3"><Input aria-label="새 팀 이름" value={teamName} onChange={(event) => setTeamName(event.target.value)} onPressEnter={createTeam} placeholder="예: 프론트엔드 팀" maxLength={150} /><Button type="primary" onClick={createTeam}>팀 만들기</Button></div>}
+          <div className="mt-4 flex flex-wrap gap-2">{teams.length ? teams.map((team) => <span key={team.id} className="rounded-full border border-[#eadfd7] bg-[#fffaf6] px-3 py-1.5 text-sm font-bold text-[#596274]">{team.name} · {team.myRole === "LEAD" ? "리드" : "구성원"}</span>) : <span className="text-sm text-[#8a817b]">소속된 팀이 없습니다.</span>}</div>
+        </section>
+      )}
 
       {currentWorkspace && (
         <section className="rounded-[24px] border border-[#eadfd7] bg-white p-6 md:p-8">

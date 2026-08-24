@@ -14,6 +14,7 @@ import com.example.demo.dao.WorkLogDao;
 import com.example.demo.dao.WorkLogCollaboratorDao;
 import com.example.demo.dao.MemberDao;
 import com.example.demo.dao.ProjectDao;
+import com.example.demo.dao.TeamDao;
 import com.example.demo.dto.FileAttach;
 import com.example.demo.dto.TemplateUsageDto;
 import com.example.demo.dto.WorkLog;
@@ -27,16 +28,21 @@ public class WorkLogService {
 	private WorkLogCollaboratorDao workLogCollaboratorDao;
 	private ProjectDao projectDao;
 	private MemberDao memberDao;
+	private TeamDao teamDao;
+	private WorkspacePermissionService workspacePermissionService;
 	// 의존성 주입
 	public WorkLogService(WorkLogDao workLogDao, FileAttachService fileAttachService,
 			WorkReplyService workReplyService, WorkLogCollaboratorDao workLogCollaboratorDao,
-			ProjectDao projectDao, MemberDao memberDao) {
+			ProjectDao projectDao, MemberDao memberDao, TeamDao teamDao,
+			WorkspacePermissionService workspacePermissionService) {
 		this.workLogDao = workLogDao;
 		this.fileAttachService = fileAttachService;
 		this.workReplyService = workReplyService;
 		this.workLogCollaboratorDao = workLogCollaboratorDao;
 		this.projectDao = projectDao;
 		this.memberDao = memberDao;
+		this.teamDao = teamDao;
+		this.workspacePermissionService = workspacePermissionService;
 	}
 	
 	/** 글을 넣고 새로 만들어진 id 를 돌려준다. */
@@ -103,6 +109,7 @@ public class WorkLogService {
 	}
 
 	public void validateStructuredFields(WorkLog data, int memberId, Integer currentWorkLogId) {
+		validateSharing(data, memberId);
 		if (data.getProjectId() != null && projectDao.countOwnedActiveProject(data.getProjectId(), memberId) == 0) {
 			throw new IllegalArgumentException("본인이 소유한 활성 프로젝트만 연결할 수 있습니다.");
 		}
@@ -142,6 +149,29 @@ public class WorkLogService {
 				}
 			}
 		}
+	}
+
+	private void validateSharing(WorkLog data, int memberId) {
+		String visibility = data.getVisibility() == null ? "PRIVATE" : data.getVisibility().trim().toUpperCase();
+		if (!Set.of("PRIVATE", "WORKSPACE", "TEAM").contains(visibility)) {
+			throw new IllegalArgumentException("지원하지 않는 공개 범위입니다.");
+		}
+		if (data.getWorkspaceId() == null) {
+			if (!"PRIVATE".equals(visibility) || data.getTeamId() != null) {
+				throw new IllegalArgumentException("개인 공간 기록은 비공개로만 저장할 수 있습니다.");
+			}
+		} else {
+			workspacePermissionService.requireActiveMember(data.getWorkspaceId(), memberId);
+			if ("TEAM".equals(visibility)) {
+				if (data.getTeamId() == null || teamDao.countInWorkspace(data.getTeamId(), data.getWorkspaceId()) == 0
+						|| teamDao.countMember(data.getTeamId(), memberId) == 0) {
+					throw new IllegalArgumentException("소속 팀을 선택해주세요.");
+				}
+			} else if (data.getTeamId() != null) {
+				throw new IllegalArgumentException("팀 공개 기록에서만 팀을 선택할 수 있습니다.");
+			}
+		}
+		data.setVisibility(visibility);
 	}
 
 	private LocalDate parseDate(String value, String label) {
